@@ -5,7 +5,7 @@ go 1.25.12
 require (
 	github.com/cenk/backoff v2.2.1+incompatible
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/fino-io/core/go v0.0.0-20260807025508-1eede25b9d23
+	github.com/fino-io/core/go v0.0.0-20260807082904-0a507f4a15f1
 	github.com/fino-io/finokit v0.0.0-20260807034745-ffd38313a89e
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
