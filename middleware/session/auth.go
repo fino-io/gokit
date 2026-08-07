@@ -3,7 +3,7 @@ package session
 import (
 	"context"
 
-	gokitsession "github.com/chaos-io/gokit/session"
+	gokitsession "github.com/fino-io/gokit/session"
 )
 
 func contextWithValidatedSession(ctx context.Context, validator gokitsession.Validator, token string) (context.Context, error) {

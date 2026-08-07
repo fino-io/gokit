@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	gokitsession "github.com/chaos-io/gokit/session"
+	gokitsession "github.com/fino-io/gokit/session"
 	"github.com/stretchr/testify/require"
 )
 

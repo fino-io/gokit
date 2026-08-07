@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	gokitsession "github.com/chaos-io/gokit/session"
+	gokitsession "github.com/fino-io/gokit/session"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"

@@ -3,7 +3,7 @@ package kit
 import (
 	"fmt"
 
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/logs"
 	"github.com/go-kit/kit/log"
 )
 

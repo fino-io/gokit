@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/chaos-io/gokit/metrics"
+	"github.com/fino-io/gokit/metrics"
 	"go.opentelemetry.io/otel/trace"
 	stdgrpc "google.golang.org/grpc"
 )

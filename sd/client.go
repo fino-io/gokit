@@ -8,8 +8,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
 
-	"github.com/chaos-io/gokit/sd/direct"
-	"github.com/chaos-io/gokit/sd/etcdv3"
+	"github.com/fino-io/gokit/sd/direct"
+	"github.com/fino-io/gokit/sd/etcdv3"
 )
 
 type Client interface {

@@ -12,7 +12,6 @@ import (
 func TestValidatorMW(t *testing.T) {
 	ep := NewCreateUserEndpoint()
 
-	// ❌ 测试不合法输入
 	_, err := ep(context.Background(), CreateUserRequest{
 		Name:  "A",
 		Email: "invalid-email",
@@ -20,7 +19,6 @@ func TestValidatorMW(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 
-	// ✅ 测试合法输入
 	_, err = ep(context.Background(), CreateUserRequest{
 		Name:  "Alice",
 		Email: "alice@example.com",

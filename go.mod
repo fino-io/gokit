@@ -1,12 +1,12 @@
-module github.com/chaos-io/gokit
+module github.com/fino-io/gokit
 
-go 1.25.0
+go 1.25.12
 
 require (
 	github.com/cenk/backoff v2.2.1+incompatible
-	github.com/chaos-io/chaos v0.0.0-20260717135327-37409686b5ea
-	github.com/chaos-io/core/go v0.0.0-20260714004535-9b931833a352
 	github.com/felixge/httpsnoop v1.0.4
+	github.com/fino-io/core/go v0.0.0-20260807025508-1eede25b9d23
+	github.com/fino-io/finokit v0.0.0-20260807034745-ffd38313a89e
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/json-iterator/go v1.1.12
@@ -63,10 +63,10 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
-	golang.org/x/crypto v0.49.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
+	golang.org/x/crypto v0.53.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260401024825-9d38bb4040a9 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect

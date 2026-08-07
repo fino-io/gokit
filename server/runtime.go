@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/logs"
 	"google.golang.org/grpc"
 )
 

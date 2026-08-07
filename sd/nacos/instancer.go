@@ -4,9 +4,9 @@ package nacos
 // 	"github.com/go-kit/kit/log"
 // 	kitsd "github.com/go-kit/kit/sd"
 //
-// 	"github.com/chaos-io/gokit/sd/internal/instance"
+// 	"github.com/fino-io/gokit/sd/internal/instance"
 //
-// 	"github.com/chaos-io/chaos/logs"
+// 	"github.com/fino-io/finokit/logs"
 // )
 //
 // // Instancer yields instances stored in a certain etcd keyspace. Any kind of

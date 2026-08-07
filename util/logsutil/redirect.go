@@ -7,8 +7,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/chaos-io/chaos/config"
-	"github.com/chaos-io/core/go/logs"
+	"github.com/fino-io/core/go/logs"
+	"github.com/fino-io/finokit/config"
 )
 
 func GetLogFileName() string {

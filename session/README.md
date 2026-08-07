@@ -1,6 +1,6 @@
 # `session`
 
-这个包提供一套 **stateful session** 核心组件，业务代码应直接依赖 `github.com/chaos-io/gokit/session`。
+这个包提供一套 **stateful session** 核心组件，业务代码应直接依赖 `github.com/fino-io/gokit/session`。
 
 核心原则只有三条：
 
@@ -103,7 +103,7 @@
 
 ## 与中间件的关系
 
-`github.com/chaos-io/gokit/middleware/session` 只负责 transport / endpoint middleware：
+`github.com/fino-io/gokit/middleware/session` 只负责 transport / endpoint middleware：
 
 - 从 header / cookie / metadata 或 context 读取 token
 - 调用本包的 `Validator`
@@ -178,5 +178,5 @@ _ = validated
 
 ## 目录边界
 
-- `github.com/chaos-io/gokit/session`：业务可依赖的 session 核心能力。
-- `github.com/chaos-io/gokit/middleware/session`：HTTP / gRPC / endpoint middleware。
+- `github.com/fino-io/gokit/session`：业务可依赖的 session 核心能力。
+- `github.com/fino-io/gokit/middleware/session`：HTTP / gRPC / endpoint middleware。

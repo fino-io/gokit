@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	metricmw "github.com/chaos-io/gokit/middleware/metrics"
+	metricmw "github.com/fino-io/gokit/middleware/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

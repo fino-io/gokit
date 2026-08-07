@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	chaosconfig "github.com/chaos-io/chaos/config"
-	sourcememory "github.com/chaos-io/chaos/config/source/memory"
+	"github.com/fino-io/finokit/config"
+	"github.com/fino-io/finokit/config/source/memory"
 )
 
 func TestLoadConfigReadsTransportAccessLog(t *testing.T) {
-	err := chaosconfig.InitDefault(
-		chaosconfig.WithWatcherDisabled(),
-		chaosconfig.WithSource(sourcememory.NewSource(sourcememory.WithJSON([]byte(`{
+	err := config.InitDefault(
+		config.WithWatcherDisabled(),
+		config.WithSource(memory.NewSource(memory.WithJSON([]byte(`{
 			"transport": {
 				"accessLog": {
 					"slowThreshold": "750ms",

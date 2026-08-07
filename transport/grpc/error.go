@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/chaos-io/core/go/chaos/core"
+	"github.com/fino-io/core/go/fino/core"
 	"google.golang.org/grpc/codes"
 )
 

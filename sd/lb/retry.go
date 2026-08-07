@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-kit/kit/endpoint"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/go-kit/kit/endpoint"
 )
 
 // RetryError is an error wrapper that is used by the retry mechanism. All

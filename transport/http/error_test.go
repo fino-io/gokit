@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/chaos-io/core/go/chaos/core"
+	"github.com/fino-io/core/go/fino/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

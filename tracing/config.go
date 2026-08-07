@@ -3,8 +3,8 @@ package tracing
 import (
 	"strings"
 
-	"github.com/chaos-io/chaos/config"
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/config"
+	"github.com/fino-io/finokit/logs"
 )
 
 type Config struct {

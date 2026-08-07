@@ -9,7 +9,7 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/sd"
 
-	"github.com/chaos-io/gokit/sd/lb"
+	"github.com/fino-io/gokit/sd/lb"
 )
 
 func TestRetryMaxTotalFail(t *testing.T) {

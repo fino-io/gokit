@@ -3,7 +3,7 @@ package accesslog
 import (
 	"context"
 
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/logs"
 )
 
 type level uint8

@@ -3,7 +3,7 @@ package http
 import (
 	"testing"
 
-	"github.com/chaos-io/core/go/chaos/core"
+	"github.com/fino-io/core/go/fino/core"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )

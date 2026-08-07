@@ -1,6 +1,6 @@
 package http
 
-import "github.com/chaos-io/core/go/chaos/core"
+import "github.com/fino-io/core/go/fino/core"
 
 type EnvelopedResponse struct {
 	Error *core.Error `json:"error"`

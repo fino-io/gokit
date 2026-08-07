@@ -1,6 +1,6 @@
 package metrics
 
-import "github.com/chaos-io/chaos/config"
+import "github.com/fino-io/finokit/config"
 
 type Config struct {
 	Enable    bool   `json:"enable" yaml:"enable" default:"false"`

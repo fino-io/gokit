@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/chaos-io/core/go/chaos/core"
+	"github.com/fino-io/core/go/fino/core"
 )
 
 //go:generate mockgen -destination=mocks/http.go -package=mocks . IClient

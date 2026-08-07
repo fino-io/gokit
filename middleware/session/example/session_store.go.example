@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/chaos-io/chaos/db"
-	"github.com/chaos-io/gokit/session"
+	"github.com/fino-io/finokit/db"
+	"github.com/fino-io/gokit/session"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

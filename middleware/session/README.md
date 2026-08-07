@@ -1,6 +1,6 @@
 # `middleware/session`
 
-这个包只保留 session 相关 middleware，核心模型和校验能力来自 `github.com/chaos-io/gokit/session`。
+这个包只保留 session 相关 middleware，核心模型和校验能力来自 `github.com/fino-io/gokit/session`。
 
 ## Transport middleware
 
@@ -14,7 +14,7 @@
 - `ValidateMiddleware` 从 `session.TokenFromContext` 读取 token，调用 `session.Validator`，再写回校验后的 session。
 - `AuthenticateMiddleware` 在校验 session 后调用 `UserResolver`，并把解析出的业务 user 写入 middleware 自己的 user context。
 
-业务模型、签发、校验、store、token codec、`WithSession` 和 `WithToken` 都在 `github.com/chaos-io/gokit/session`。
+业务模型、签发、校验、store、token codec、`WithSession` 和 `WithToken` 都在 `github.com/fino-io/gokit/session`。
 
 ## 接入示例
 

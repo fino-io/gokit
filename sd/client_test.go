@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/chaos-io/gokit/sd/direct"
+	"github.com/fino-io/gokit/sd/direct"
 )
 
 func TestNewDirectDoesNotRequireTopLevelURL(t *testing.T) {

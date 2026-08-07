@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/cenk/backoff"
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/logs"
 	"github.com/stretchr/testify/assert"
 )
 

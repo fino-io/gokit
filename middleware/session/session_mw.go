@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gokitsession "github.com/chaos-io/gokit/session"
+	gokitsession "github.com/fino-io/gokit/session"
 	"github.com/go-kit/kit/endpoint"
 )
 

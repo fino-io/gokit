@@ -6,7 +6,7 @@ package nacos
 // 	"strconv"
 // 	"strings"
 //
-// 	"github.com/chaos-io/chaos/logs"
+// 	"github.com/fino-io/finokit/logs"
 // 	"github.com/go-kit/kit/log"
 // 	kitsd "github.com/go-kit/kit/sd"
 // 	"github.com/nacos-group/nacos-sdk-go/v2/clients"

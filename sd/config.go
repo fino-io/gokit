@@ -1,13 +1,13 @@
 package sd
 
 import (
-	"github.com/chaos-io/chaos/config"
-	"github.com/chaos-io/chaos/logs"
+	"github.com/fino-io/finokit/config"
+	"github.com/fino-io/finokit/logs"
 
-	"github.com/chaos-io/gokit/retry"
-	"github.com/chaos-io/gokit/sd/direct"
-	"github.com/chaos-io/gokit/sd/etcdv3"
-	// "github.com/chaos-io/gokit/sd/nacos"
+	"github.com/fino-io/gokit/retry"
+	"github.com/fino-io/gokit/sd/direct"
+	"github.com/fino-io/gokit/sd/etcdv3"
+	// "github.com/fino-io/gokit/sd/nacos"
 )
 
 type Config struct {

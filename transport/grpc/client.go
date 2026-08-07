@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/chaos-io/gokit/metrics"
-	"github.com/chaos-io/gokit/tracing"
+	"github.com/fino-io/gokit/metrics"
+	"github.com/fino-io/gokit/tracing"
 	kitsd "github.com/go-kit/kit/sd"
 	"go.opentelemetry.io/otel/trace"
 	stdgrpc "google.golang.org/grpc"

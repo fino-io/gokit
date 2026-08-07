@@ -4,7 +4,7 @@
 
 ## 配置
 
-`New` 会通过 `chaos/config` 读取 `tracing` 配置段：
+`New` 会通过 `fino/config` 读取 `tracing` 配置段：
 
 ```yaml
 tracing:
