@@ -39,6 +39,7 @@ func (c *Client) Register(urlStr, name string, tags []string) error {
 	if c == nil {
 		return errors.New("sd/direct: nil client")
 	}
+
 	name = strings.TrimSpace(name)
 	urlStr = strings.TrimSpace(urlStr)
 	if name == "" {
@@ -64,9 +65,10 @@ func (c *Client) Deregister() error {
 	if c == nil {
 		return nil
 	}
+
 	c.mtx.Lock()
-	defer c.mtx.Unlock()
 	c.deregisterLocked()
+	c.mtx.Unlock()
 	return nil
 }
 
@@ -78,9 +80,11 @@ func (c *Client) Instancer(service string) kitsd.Instancer {
 	c.mtx.RLock()
 	urls := append([]string(nil), c.instances[service]...)
 	c.mtx.RUnlock()
+
 	if len(urls) == 0 {
 		return nil
 	}
+
 	var ret kitsd.FixedInstancer
 	return append(ret, urls...)
 }
