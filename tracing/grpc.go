@@ -20,6 +20,15 @@ func GRPCToContext(ctx context.Context, md metadata.MD) context.Context {
 	return grpcPropagator.Extract(ctx, metadataTextMap(md))
 }
 
+// GRPCUnaryServerInterceptor extracts OpenTelemetry propagation metadata before
+// the remaining unary server interceptors run.
+func GRPCUnaryServerInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		md, _ := metadata.FromIncomingContext(ctx)
+		return handler(GRPCToContext(ctx, md), req)
+	}
+}
+
 // GRPCUnaryClientInterceptor creates a client span and propagates its context
 // to unary gRPC calls.
 func GRPCUnaryClientInterceptor(tracer trace.Tracer) grpc.UnaryClientInterceptor {

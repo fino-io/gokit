@@ -157,6 +157,17 @@ func TestGRPCToContextExtractsTraceParent(t *testing.T) {
 	assertRemoteTraceContext(t, GRPCToContext(context.Background(), md))
 }
 
+func TestGRPCUnaryServerInterceptorExtractsTraceParent(t *testing.T) {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("traceparent", traceparent))
+	_, err := GRPCUnaryServerInterceptor()(ctx, nil, nil, func(ctx context.Context, _ any) (any, error) {
+		assertRemoteTraceContext(t, ctx)
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestNewWithNilConfigReturnsError(t *testing.T) {
 	tracer, shutdown, err := NewWith(context.Background(), "svc", nil)
 	if err == nil {
