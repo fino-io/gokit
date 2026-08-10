@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/endpoint"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // RetryError is an error wrapper that is used by the retry mechanism. All
@@ -49,9 +47,10 @@ type Callback func(n int, received error) (keepTrying bool, replacement error)
 // balancer for the specified service method. Requests to the endpoint will be
 // automatically load balanced via the load balancer. Requests that return
 // errors will be retried until they succeed, up to max times, or until the
-// timeout is elapsed, whichever comes first.
-func Retry(max int, timeout time.Duration, b Balancer) endpoint.Endpoint {
-	return RetryWithCallback(timeout, b, maxRetries(max))
+// timeout is elapsed, whichever comes first. Interval controls the delay
+// between attempts; zero retries immediately.
+func Retry(max int, timeout, interval time.Duration, b Balancer) endpoint.Endpoint {
+	return RetryWithCallback(timeout, interval, b, maxRetries(max))
 }
 
 func maxRetries(max int) Callback {
@@ -69,8 +68,8 @@ func alwaysRetry(int, error) (keepTrying bool, replacement error) {
 // endpoint will be automatically load balanced via the load balancer. Requests
 // that return errors will be retried until they succeed, up to max times, until
 // the callback returns false, or until the timeout is elapsed, whichever comes
-// first.
-func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.Endpoint {
+// first. Interval controls the delay between attempts; zero retries immediately.
+func RetryWithCallback(timeout, interval time.Duration, b Balancer, cb Callback) endpoint.Endpoint {
 	if cb == nil {
 		cb = alwaysRetry
 	}
@@ -98,7 +97,7 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 
 			e, err := b.Endpoint()
 			if err == nil {
-				response, err = invoke(newctx, e, request)
+				response, err = e(newctx, request)
 			}
 			if err != nil {
 				if newctx.Err() != nil {
@@ -106,51 +105,6 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 					return nil, final
 				}
 				final.RawErrors = append(final.RawErrors, err)
-
-				/*
-					// use https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md
-					// https://github.com/grpc/grpc/blob/master/doc/statuscodes.md
-					// for mapping
-					func (e *Error) GRPCStatus() *status.Status {
-						var code codes.Code
-						switch e.Code.Value {
-						case http.StatusOK:
-							code = codes.OK
-						case http.StatusInternalServerError:
-							code = codes.Internal
-						case http.StatusBadRequest:
-							code = codes.InvalidArgument
-						case http.StatusGatewayTimeout:
-							code = codes.DeadlineExceeded
-						case http.StatusNotFound:
-							code = codes.NotFound
-						case http.StatusConflict:
-							code = codes.AlreadyExists
-						case http.StatusForbidden:
-							code = codes.PermissionDenied
-						case http.StatusUnauthorized:
-							code = codes.Unauthenticated
-						case http.StatusNotImplemented:
-							code = codes.Unimplemented
-						case http.StatusServiceUnavailable:
-							code = codes.Unavailable
-						case http.StatusTooManyRequests:
-							code = codes.ResourceExhausted
-						default:
-							code = codes.Unknown
-						}
-						return status.New(code, e.Message)
-					}
-				*/
-				if v, ok := status.FromError(err); ok {
-					code := v.Code()
-					if code == codes.InvalidArgument || code == codes.NotFound ||
-						code == codes.Unimplemented || code == codes.Unauthenticated {
-						// app not found error is not error
-						final.Final = err
-						return nil, final
-					}
-				}
 
 				keepTrying, replacement := cb(i, err)
 				if replacement != nil {
@@ -161,7 +115,7 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 					return nil, final
 				}
 
-				if !wait(newctx, time.Millisecond) {
+				if !wait(newctx, interval) {
 					final.Final = newctx.Err()
 					return nil, final
 				}
@@ -174,6 +128,9 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 }
 
 func wait(ctx context.Context, delay time.Duration) bool {
+	if delay <= 0 {
+		return ctx.Err() == nil
+	}
 	timer := time.NewTimer(delay)
 	defer timer.Stop()
 	select {
@@ -181,25 +138,5 @@ func wait(ctx context.Context, delay time.Duration) bool {
 		return false
 	case <-timer.C:
 		return true
-	}
-}
-
-func invoke(ctx context.Context, e endpoint.Endpoint, request interface{}) (interface{}, error) {
-	type result struct {
-		response interface{}
-		err      error
-	}
-
-	done := make(chan result, 1)
-	go func() {
-		response, err := e(ctx, request)
-		done <- result{response: response, err: err}
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case r := <-done:
-		return r.response, r.err
 	}
 }

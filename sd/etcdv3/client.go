@@ -89,12 +89,10 @@ func (c *Client) Deregister() error {
 	}
 
 	c.mtx.Lock()
-	registrar := c.registrar
-	c.registrar = nil
-	c.mtx.Unlock()
-
-	if registrar != nil {
-		registrar.Deregister()
+	defer c.mtx.Unlock()
+	if c.registrar != nil {
+		c.registrar.Deregister()
+		c.registrar = nil
 	}
 	return nil
 }

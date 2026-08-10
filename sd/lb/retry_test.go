@@ -16,7 +16,7 @@ func TestRetryMaxTotalFail(t *testing.T) {
 	var (
 		endpoints = sd.FixedEndpointer{} // no endpoints
 		rr        = lb.NewRoundRobin(endpoints)
-		retry     = lb.Retry(999, time.Second, rr) // lots of retries
+		retry     = lb.Retry(999, time.Second, 0, rr) // lots of retries
 		ctx       = context.Background()
 	)
 	if _, err := retry(ctx, struct{}{}); err == nil {
@@ -40,7 +40,7 @@ func TestRetryMaxPartialFail(t *testing.T) {
 		rr      = lb.NewRoundRobin(endpointer)
 		ctx     = context.Background()
 	)
-	if _, err := lb.Retry(retries, time.Second, rr)(ctx, struct{}{}); err == nil {
+	if _, err := lb.Retry(retries, time.Second, 0, rr)(ctx, struct{}{}); err == nil {
 		t.Errorf("expected error two, got none")
 	}
 }
@@ -61,17 +61,24 @@ func TestRetryMaxSuccess(t *testing.T) {
 		rr      = lb.NewRoundRobin(endpointer)
 		ctx     = context.Background()
 	)
-	if _, err := lb.Retry(retries, time.Second, rr)(ctx, struct{}{}); err != nil {
+	if _, err := lb.Retry(retries, time.Second, 0, rr)(ctx, struct{}{}); err != nil {
 		t.Error(err)
 	}
 }
 
 func TestRetryTimeout(t *testing.T) {
 	var (
-		step    = make(chan struct{})
-		e       = func(context.Context, interface{}) (interface{}, error) { <-step; return struct{}{}, nil }
+		step = make(chan struct{})
+		e    = func(ctx context.Context, _ interface{}) (interface{}, error) {
+			select {
+			case <-step:
+				return struct{}{}, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
 		timeout = time.Millisecond
-		retry   = lb.Retry(999, timeout, lb.NewRoundRobin(sd.FixedEndpointer{0: e}))
+		retry   = lb.Retry(999, timeout, 0, lb.NewRoundRobin(sd.FixedEndpointer{0: e}))
 		errs    = make(chan error, 1)
 		invoke  = func() { _, err := retry(context.Background(), struct{}{}); errs <- err }
 	)
@@ -95,7 +102,7 @@ func TestAbortEarlyCustomMessage(t *testing.T) {
 		cb        = func(int, error) (bool, error) { return false, myErr }
 		endpoints = sd.FixedEndpointer{} // no endpoints
 		rr        = lb.NewRoundRobin(endpoints)
-		retry     = lb.RetryWithCallback(time.Second, rr, cb) // lots of retries
+		retry     = lb.RetryWithCallback(time.Second, 0, rr, cb) // lots of retries
 		ctx       = context.Background()
 	)
 	_, err := retry(ctx, struct{}{})
@@ -118,7 +125,7 @@ func TestErrorPassedUnchangedToCallback(t *testing.T) {
 		}
 		endpoints = sd.FixedEndpointer{endpoint} // no endpoints
 		rr        = lb.NewRoundRobin(endpoints)
-		retry     = lb.RetryWithCallback(time.Second, rr, cb) // lots of retries
+		retry     = lb.RetryWithCallback(time.Second, 0, rr, cb) // lots of retries
 		ctx       = context.Background()
 	)
 	_, err := retry(ctx, struct{}{})
@@ -135,7 +142,7 @@ func TestHandleNilCallback(t *testing.T) {
 		rr  = lb.NewRoundRobin(endpointer)
 		ctx = context.Background()
 	)
-	retry := lb.RetryWithCallback(time.Second, rr, nil)
+	retry := lb.RetryWithCallback(time.Second, 0, rr, nil)
 	if _, err := retry(ctx, struct{}{}); err != nil {
 		t.Error(err)
 	}

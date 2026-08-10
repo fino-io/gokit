@@ -27,18 +27,15 @@ func NewCache() *Cache {
 // and notifies all registered listeners.
 func (c *Cache) Update(event kitsd.Event) {
 	c.mtx.Lock()
+	defer c.mtx.Unlock()
+
 	sort.Strings(event.Instances)
 	if reflect.DeepEqual(c.state, event) {
-		c.mtx.Unlock()
 		return // no need to broadcast the same instances
 	}
 
 	c.state = event
-	channels := c.reg.channels()
-	c.mtx.Unlock()
-	for _, ch := range channels {
-		ch <- copyEvent(event)
-	}
+	c.reg.broadcast(event)
 }
 
 // State returns the current state of discovery (instances or error) as sd.Event
@@ -57,11 +54,11 @@ func (c *Cache) Stop() {}
 // Register implements Instancer.
 func (c *Cache) Register(ch chan<- kitsd.Event) {
 	c.mtx.Lock()
+	defer c.mtx.Unlock()
 	c.reg.register(ch)
-	event := copyEvent(c.state)
-	c.mtx.Unlock()
+	event := c.state
 	// always push the current state to new channels
-	ch <- event
+	ch <- copyEvent(event)
 }
 
 // Deregister implements Instancer.
@@ -74,12 +71,10 @@ func (c *Cache) Deregister(ch chan<- kitsd.Event) {
 // registry is not goroutine-safe.
 type registry map[chan<- kitsd.Event]struct{}
 
-func (r registry) channels() []chan<- kitsd.Event {
-	channels := make([]chan<- kitsd.Event, 0, len(r))
+func (r registry) broadcast(event kitsd.Event) {
 	for ch := range r {
-		channels = append(channels, ch)
+		ch <- copyEvent(event)
 	}
-	return channels
 }
 
 func (r registry) register(c chan<- kitsd.Event) {
