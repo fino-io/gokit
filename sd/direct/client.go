@@ -14,14 +14,17 @@ type Client struct {
 func New(m map[string]*Config) *Client {
 	instances := make(map[string]kitsd.FixedInstancer, len(m))
 	for service, cfg := range m {
-		if cfg == nil {
+		service = strings.TrimSpace(service)
+		if service == "" || cfg == nil {
 			continue
 		}
 		urls := cleanURLs(cfg.Urls)
 		if len(urls) == 0 {
 			continue
 		}
-		instances[service] = urls
+		for _, u := range urls {
+			instances[service] = appendUnique(instances[service], u)
+		}
 	}
 	return &Client{instances: instances}
 }
@@ -44,17 +47,17 @@ func cleanURLs(raw []string) []string {
 	urls := make([]string, 0, len(raw))
 	for _, u := range raw {
 		if u = strings.TrimSpace(u); u != "" {
-			urls, _ = appendUnique(urls, u)
+			urls = appendUnique(urls, u)
 		}
 	}
 	return urls
 }
 
-func appendUnique(urls []string, url string) ([]string, bool) {
+func appendUnique(urls []string, url string) []string {
 	for _, existing := range urls {
 		if existing == url {
-			return urls, false
+			return urls
 		}
 	}
-	return append(urls, url), true
+	return append(urls, url)
 }

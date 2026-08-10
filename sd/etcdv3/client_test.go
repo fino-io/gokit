@@ -63,9 +63,31 @@ func TestRegisterReturnsBackendError(t *testing.T) {
 	}
 }
 
-func TestInstancerRequiresDiscoveryClient(t *testing.T) {
+func TestRegisterClearsPreviousServiceWhenReplacementFails(t *testing.T) {
+	backend := &fakeClient{}
+	client := &Client{registry: backend, logger: log.NewNopLogger()}
+	if err := client.Register("http://127.0.0.1:8080", "users"); err != nil {
+		t.Fatal(err)
+	}
+
+	backend.registerErr = errors.New("unavailable")
+	if err := client.Register("http://127.0.0.1:8081", "users"); !errors.Is(err, backend.registerErr) {
+		t.Fatalf("expected %v, got %v", backend.registerErr, err)
+	}
+	if client.service.Key != "" {
+		t.Fatalf("expected cleared service, got %q", client.service.Key)
+	}
+	if err := client.Deregister(); err != nil {
+		t.Fatal(err)
+	}
+	if len(backend.deregistered) != 1 {
+		t.Fatalf("expected one deregistration, got %d", len(backend.deregistered))
+	}
+}
+
+func TestInstancerRequiresServiceName(t *testing.T) {
 	client := &Client{logger: log.NewNopLogger()}
-	if _, err := client.Instancer("users"); err == nil {
+	if _, err := client.Instancer(" / "); err == nil {
 		t.Fatal("expected error")
 	}
 }

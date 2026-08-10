@@ -15,11 +15,12 @@ import (
 )
 
 type Client struct {
-	registry  etcdv3.Client
-	discovery etcdv3.Client
-	service   etcdv3.Service
-	logger    log.Logger
-	mtx       sync.Mutex
+	registry etcdv3.Client
+	urls     []string
+	options  etcdv3.ClientOptions
+	service  etcdv3.Service
+	logger   log.Logger
+	mtx      sync.Mutex
 }
 
 func New(urls []string, cfg *Config, logger log.Logger) (*Client, error) {
@@ -56,12 +57,12 @@ func New(urls []string, cfg *Config, logger log.Logger) (*Client, error) {
 		return nil, fmt.Errorf("sd/etcdv3: create registry client: %w", err)
 	}
 
-	discovery, err := etcdv3.NewClient(context.Background(), urls, options)
-	if err != nil {
-		return nil, fmt.Errorf("sd/etcdv3: create discovery client: %w", err)
-	}
-
-	return &Client{registry: registry, discovery: discovery, logger: logger}, nil
+	return &Client{
+		registry: registry,
+		urls:     append([]string(nil), urls...),
+		options:  options,
+		logger:   logger,
+	}, nil
 }
 
 func (c *Client) Register(urlStr, name string) error {
@@ -81,6 +82,7 @@ func (c *Client) Register(urlStr, name string) error {
 		if err := c.registry.Deregister(c.service); err != nil {
 			return fmt.Errorf("sd/etcdv3: deregister previous service: %w", err)
 		}
+		c.service = etcdv3.Service{}
 	}
 
 	if err := c.registry.Register(service); err != nil {
@@ -108,7 +110,7 @@ func (c *Client) Deregister() error {
 
 func (c *Client) Instancer(service string) (kitsd.Instancer, error) {
 	service = strings.Trim(strings.TrimSpace(service), "/")
-	if c == nil || c.discovery == nil {
+	if c == nil {
 		return nil, errors.New("sd/etcdv3: nil client")
 	}
 
@@ -116,7 +118,12 @@ func (c *Client) Instancer(service string) (kitsd.Instancer, error) {
 		return nil, errors.New("sd/etcdv3: service name is required")
 	}
 
-	instancer, err := etcdv3.NewInstancer(c.discovery, "/"+service+"/", c.logger)
+	discovery, err := etcdv3.NewClient(context.Background(), c.urls, c.options)
+	if err != nil {
+		return nil, fmt.Errorf("sd/etcdv3: create discovery client: %w", err)
+	}
+
+	instancer, err := etcdv3.NewInstancer(discovery, "/"+service+"/", c.logger)
 	if err != nil {
 		return nil, fmt.Errorf("sd/etcdv3: create instancer: %w", err)
 	}

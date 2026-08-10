@@ -96,29 +96,14 @@ func TestRetryTimeout(t *testing.T) {
 	}
 }
 
-func TestAbortEarlyCustomMessage(t *testing.T) {
-	var (
-		myErr     = errors.New("aborting early")
-		cb        = func(int, error) (bool, error) { return false, myErr }
-		endpoints = sd.FixedEndpointer{} // no endpoints
-		rr        = lb.NewRoundRobin(endpoints)
-		retry     = lb.RetryWithCallback(time.Second, 0, rr, cb) // lots of retries
-		ctx       = context.Background()
-	)
-	_, err := retry(ctx, struct{}{})
-	if want, have := myErr, err.(lb.RetryError).Final; want != have {
-		t.Errorf("want %v, have %v", want, have)
-	}
-}
-
 func TestErrorPassedUnchangedToCallback(t *testing.T) {
 	var (
 		myErr = errors.New("my custom error")
-		cb    = func(_ int, err error) (bool, error) {
+		cb    = func(_ int, err error) bool {
 			if want, have := myErr, err; want != have {
 				t.Errorf("want %v, have %v", want, have)
 			}
-			return false, nil
+			return false
 		}
 		endpoint = func(ctx context.Context, request interface{}) (interface{}, error) {
 			return nil, myErr

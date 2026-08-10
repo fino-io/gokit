@@ -36,3 +36,18 @@ func TestInstancerRequiresKnownService(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestNewNormalizesServiceNamesAndURLs(t *testing.T) {
+	client := New(map[string]*Config{
+		" users ": {Urls: []string{" http://127.0.0.1:8080 ", "http://127.0.0.1:8080"}},
+	})
+	instancer, err := client.Instancer("users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	events := make(chan kitsd.Event, 1)
+	instancer.Register(events)
+	if want := []string{"http://127.0.0.1:8080"}; !reflect.DeepEqual(want, (<-events).Instances) {
+		t.Fatalf("want %v", want)
+	}
+}

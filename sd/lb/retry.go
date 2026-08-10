@@ -18,13 +18,8 @@ func (e RetryError) Unwrap() error { return e.Final }
 
 func (e RetryError) Error() string { return e.Final.Error() }
 
-// Callback is a function that is given the current attempt count and the error
-// received from the underlying endpoint. It should return whether the Retry
-// function should continue trying to get a working endpoint, and a custom error
-// if desired. The error message may be nil, but a true/false is always
-// expected. In all cases, if the replacement error is supplied, the received
-// error will be replaced in the calling context.
-type Callback func(n int, received error) (keepTrying bool, replacement error)
+// Callback decides whether to retry after an endpoint error.
+type Callback func(attempt int, err error) bool
 
 // Retry wraps a service load balancer and returns an endpoint oriented load
 // balancer for the specified service method. Requests to the endpoint will be
@@ -37,13 +32,13 @@ func Retry(max int, timeout, interval time.Duration, b Balancer) endpoint.Endpoi
 }
 
 func maxRetries(max int) Callback {
-	return func(n int, err error) (keepTrying bool, replacement error) {
-		return n < max, nil
+	return func(attempt int, _ error) bool {
+		return attempt < max
 	}
 }
 
-func alwaysRetry(int, error) (keepTrying bool, replacement error) {
-	return true, nil
+func alwaysRetry(int, error) bool {
+	return true
 }
 
 // RetryWithCallback wraps a service load balancer and returns an endpoint
@@ -90,11 +85,7 @@ func RetryWithCallback(timeout, interval time.Duration, b Balancer, cb Callback)
 					return nil, final
 				}
 
-				keepTrying, replacement := cb(i, err)
-				if replacement != nil {
-					err = replacement
-				}
-				if !keepTrying {
+				if !cb(i, err) {
 					final.Final = err
 					final.Attempts = i
 					return nil, final
