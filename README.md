@@ -6,7 +6,7 @@
 
 - **服务运行时**：进程生命周期、配置和服务启动辅助（`server`）。
 - **传输层**：HTTP 响应封装、错误处理和客户端；gRPC 客户端、服务发现解析器及错误映射（`transport/http`、`transport/grpc`）。
-- **服务发现与负载均衡**：直连、Nacos、etcd，以及随机、轮询和重试策略（`sd`、`sd/lb`）。
+- **服务发现与负载均衡**：直连、etcd，以及随机、轮询和重试策略（`sd`、`sd/lb`）。
 - **可观测性**：Prometheus 指标、OpenTelemetry tracing、日志和访问日志（`metrics`、`tracing`、`kit`、`middleware/accesslog`）。
 - **通用中间件**：参数校验、日志、限流、国际化、上下文缓存和 session 认证（`middleware`）。
 - **通用工具**：带 HMAC 签名的服务端 session、分页游标、重试/退避、网络和日志工具（`session`、`pagination`、`retry`、`backoff`、`util`）。

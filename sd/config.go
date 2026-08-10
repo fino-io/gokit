@@ -7,7 +7,6 @@ import (
 	"github.com/fino-io/gokit/retry"
 	"github.com/fino-io/gokit/sd/direct"
 	"github.com/fino-io/gokit/sd/etcdv3"
-	// "github.com/fino-io/gokit/sd/nacos"
 )
 
 type Config struct {
@@ -17,7 +16,6 @@ type Config struct {
 	Retry     *retry.Config             `json:"retry" yaml:"retry" db:"retry"`
 	EtcdV3    *etcdv3.Config            `json:"etcd" yaml:"etcd"`
 	Direct    map[string]*direct.Config `json:"direct" yaml:"direct" db:"direct"`
-	// Nacos     *nacos.Config             `json:"nacos" yaml:"nacos"`
 }
 
 func NewConfig() *Config {
