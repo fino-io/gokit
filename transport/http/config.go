@@ -16,8 +16,10 @@ const (
 )
 
 type Config struct {
-	Style    string         `json:"style"` // default, aip, envelope
-	Envelope EnvelopeConfig `json:"envelope"`
+	Style          string         `json:"style"` // default, aip, envelope
+	Envelope       EnvelopeConfig `json:"envelope"`
+	TrustedProxies []string       `json:"trustedProxies"`
+	clientIPs      *clientIPResolver
 }
 
 func (c *Config) GetStyle() string {
@@ -40,5 +42,12 @@ func NewConfig(path ...string) *Config {
 		logs.Errorw("failed to get the http.transport config.", "path", strings.Join(path, "."), "error", err)
 		return nil
 	}
+
+	resolver, err := newClientIPResolver(cfg.TrustedProxies)
+	if err != nil {
+		logs.Errorw("invalid trusted proxy configuration", "error", err)
+		resolver, _ = newClientIPResolver(nil)
+	}
+	cfg.clientIPs = resolver
 	return cfg
 }

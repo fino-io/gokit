@@ -9,10 +9,12 @@ require (
 	github.com/fino-io/finokit v0.0.0-20260807034745-ffd38313a89e
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
+	github.com/realclientip/realclientip-go v1.0.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.44.0
