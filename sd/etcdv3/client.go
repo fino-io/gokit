@@ -74,10 +74,12 @@ func (c *Client) Register(urlStr, name string, tags []string) error {
 	registrar := etcdv3.NewRegistrar(c.client, service, c.logger)
 
 	c.mtx.Lock()
-	c.registrar = registrar
-	c.mtx.Unlock()
-
+	defer c.mtx.Unlock()
+	if c.registrar != nil {
+		c.registrar.Deregister()
+	}
 	registrar.Register()
+	c.registrar = registrar
 	return nil
 }
 

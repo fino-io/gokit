@@ -2,6 +2,7 @@ package lb
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -18,11 +19,17 @@ type RetryError struct {
 	Final     error   // the final, terminating error
 }
 
+func (e RetryError) Unwrap() error { return e.Final }
+
 func (e RetryError) Error() string {
 	var suffix string
-	if len(e.RawErrors) > 1 {
-		a := make([]string, len(e.RawErrors)-1)
-		for i := 0; i < len(e.RawErrors)-1; i++ { // last one is Final
+	n := len(e.RawErrors)
+	if n > 0 && errors.Is(e.RawErrors[n-1], e.Final) {
+		n--
+	}
+	if n > 0 {
+		a := make([]string, n)
+		for i := 0; i < n; i++ {
 			a[i] = e.RawErrors[i].Error()
 		}
 		suffix = fmt.Sprintf(" (previously: %s)", strings.Join(a, "; "))
@@ -85,7 +92,8 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 
 		for i := 1; ; i++ {
 			if err := newctx.Err(); err != nil {
-				return nil, newctx.Err()
+				final.Final = err
+				return nil, final
 			}
 
 			e, err := b.Endpoint()
@@ -93,6 +101,10 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 				response, err = invoke(newctx, e, request)
 			}
 			if err != nil {
+				if newctx.Err() != nil {
+					final.Final = newctx.Err()
+					return nil, final
+				}
 				final.RawErrors = append(final.RawErrors, err)
 
 				/*
@@ -149,11 +161,26 @@ func RetryWithCallback(timeout time.Duration, b Balancer, cb Callback) endpoint.
 					return nil, final
 				}
 
+				if !wait(newctx, time.Millisecond) {
+					final.Final = newctx.Err()
+					return nil, final
+				}
 				continue
 			}
 
 			return response, nil
 		}
+	}
+}
+
+func wait(ctx context.Context, delay time.Duration) bool {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
 	}
 }
 

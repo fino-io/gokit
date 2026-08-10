@@ -14,15 +14,9 @@ func TestInstancerReturnsCleanCopy(t *testing.T) {
 	client := New(cfg)
 	cfg["users"].Urls[0] = "changed"
 
-	instancer := client.Instancer("users")
-	fixed, ok := instancer.(kitsd.FixedInstancer)
-	if !ok {
-		t.Fatalf("expected FixedInstancer, got %T", instancer)
-	}
-
-	want := kitsd.FixedInstancer{"http://127.0.0.1:8080", "grpc://127.0.0.1:9000"}
-	if !reflect.DeepEqual(want, fixed) {
-		t.Fatalf("want %v, got %v", want, fixed)
+	want := []string{"grpc://127.0.0.1:9000", "http://127.0.0.1:8080"}
+	if have := instances(t, client, "users"); !reflect.DeepEqual(want, have) {
+		t.Fatalf("want %v, got %v", want, have)
 	}
 }
 
@@ -34,8 +28,8 @@ func TestRegisterAndDeregister(t *testing.T) {
 	if err := client.Register(" http://127.0.0.1:8081 ", "users", nil); err != nil {
 		t.Fatal(err)
 	}
-	want := kitsd.FixedInstancer{"http://127.0.0.1:8080", "http://127.0.0.1:8081"}
-	if have := fixedInstancer(t, client, "users"); !reflect.DeepEqual(want, have) {
+	want := []string{"http://127.0.0.1:8080", "http://127.0.0.1:8081"}
+	if have := instances(t, client, "users"); !reflect.DeepEqual(want, have) {
 		t.Fatalf("want %v, got %v", want, have)
 	}
 
@@ -43,7 +37,7 @@ func TestRegisterAndDeregister(t *testing.T) {
 		t.Fatal(err)
 	}
 	want = kitsd.FixedInstancer{"http://127.0.0.1:8080"}
-	if have := fixedInstancer(t, client, "users"); !reflect.DeepEqual(want, have) {
+	if have := instances(t, client, "users"); !reflect.DeepEqual(want, have) {
 		t.Fatalf("want %v, got %v", want, have)
 	}
 }
@@ -60,8 +54,8 @@ func TestDeregisterKeepsStaticDuplicate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := kitsd.FixedInstancer{"http://127.0.0.1:8080"}
-	if have := fixedInstancer(t, client, "users"); !reflect.DeepEqual(want, have) {
+	want := []string{"http://127.0.0.1:8080"}
+	if have := instances(t, client, "users"); !reflect.DeepEqual(want, have) {
 		t.Fatalf("want %v, got %v", want, have)
 	}
 }
@@ -89,8 +83,8 @@ func TestRegisterValidatesInput(t *testing.T) {
 	if err := client.Register("http://127.0.0.1:8081", "orders", nil); err != nil {
 		t.Fatal(err)
 	}
-	if instancer := client.Instancer("users"); instancer != nil {
-		t.Fatalf("expected previous registration removed, got %T", instancer)
+	if have := instances(t, client, "users"); len(have) != 0 {
+		t.Fatalf("expected previous registration removed, got %v", have)
 	}
 }
 
@@ -100,18 +94,37 @@ func TestRegisterWorksOnZeroValueClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := kitsd.FixedInstancer{"http://127.0.0.1:8080"}
-	if have := fixedInstancer(t, &client, "users"); !reflect.DeepEqual(want, have) {
+	want := []string{"http://127.0.0.1:8080"}
+	if have := instances(t, &client, "users"); !reflect.DeepEqual(want, have) {
 		t.Fatalf("want %v, got %v", want, have)
 	}
 }
 
-func fixedInstancer(t *testing.T, client *Client, service string) kitsd.FixedInstancer {
+func TestInstancerReceivesUpdates(t *testing.T) {
+	client := New(map[string]*Config{"users": {Urls: []string{"http://127.0.0.1:8080"}}})
+	instancer := client.Instancer("users")
+	events := make(chan kitsd.Event, 2)
+	instancer.Register(events)
+	<-events
+
+	if err := client.Register("http://127.0.0.1:8081", "users", nil); err != nil {
+		t.Fatal(err)
+	}
+	event := <-events
+	if want := []string{"http://127.0.0.1:8080", "http://127.0.0.1:8081"}; !reflect.DeepEqual(want, event.Instances) {
+		t.Fatalf("want %v, got %v", want, event.Instances)
+	}
+}
+
+func instances(t *testing.T, client *Client, service string) []string {
 	t.Helper()
 	instancer := client.Instancer(service)
-	fixed, ok := instancer.(kitsd.FixedInstancer)
-	if !ok {
-		t.Fatalf("expected FixedInstancer, got %T", instancer)
+	if instancer == nil {
+		return nil
 	}
-	return fixed
+	events := make(chan kitsd.Event, 1)
+	instancer.Register(events)
+	event := <-events
+	instancer.Deregister(events)
+	return event.Instances
 }

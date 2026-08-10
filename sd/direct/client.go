@@ -6,11 +6,13 @@ import (
 	"sync"
 
 	kitsd "github.com/go-kit/kit/sd"
+
+	"github.com/fino-io/gokit/sd/internal/instance"
 )
 
 type Client struct {
 	mtx        sync.RWMutex
-	instances  map[string][]string
+	instances  map[string]*instance.Cache
 	registered registration
 }
 
@@ -21,7 +23,7 @@ type registration struct {
 }
 
 func New(m map[string]*Config) *Client {
-	instances := make(map[string][]string, len(m))
+	instances := make(map[string]*instance.Cache, len(m))
 	for service, cfg := range m {
 		if cfg == nil {
 			continue
@@ -30,7 +32,7 @@ func New(m map[string]*Config) *Client {
 		if len(urls) == 0 {
 			continue
 		}
-		instances[service] = urls
+		instances[service] = newInstancer(urls)
 	}
 	return &Client{instances: instances}
 }
@@ -52,11 +54,17 @@ func (c *Client) Register(urlStr, name string, tags []string) error {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 	if c.instances == nil {
-		c.instances = make(map[string][]string)
+		c.instances = make(map[string]*instance.Cache)
 	}
 	c.deregisterLocked()
-	urls, added := appendUnique(c.instances[name], urlStr)
-	c.instances[name] = urls
+	instancer := c.instances[name]
+	if instancer == nil {
+		instancer = newInstancer(nil)
+		c.instances[name] = instancer
+	}
+	state := instancer.State()
+	urls, added := appendUnique(state.Instances, urlStr)
+	instancer.Update(kitsd.Event{Instances: urls})
 	c.registered = registration{service: name, url: urlStr, added: added}
 	return nil
 }
@@ -78,15 +86,9 @@ func (c *Client) Instancer(service string) kitsd.Instancer {
 	}
 
 	c.mtx.RLock()
-	urls := append([]string(nil), c.instances[service]...)
+	instancer := c.instances[service]
 	c.mtx.RUnlock()
-
-	if len(urls) == 0 {
-		return nil
-	}
-
-	var ret kitsd.FixedInstancer
-	return append(ret, urls...)
+	return instancer
 }
 
 func (c *Client) deregisterLocked() {
@@ -94,14 +96,18 @@ func (c *Client) deregisterLocked() {
 		return
 	}
 	if c.registered.added {
-		urls := remove(c.instances[c.registered.service], c.registered.url)
-		if len(urls) == 0 {
-			delete(c.instances, c.registered.service)
-		} else {
-			c.instances[c.registered.service] = urls
-		}
+		instancer := c.instances[c.registered.service]
+		state := instancer.State()
+		urls := remove(state.Instances, c.registered.url)
+		instancer.Update(kitsd.Event{Instances: urls})
 	}
 	c.registered = registration{}
+}
+
+func newInstancer(urls []string) *instance.Cache {
+	instancer := instance.NewCache()
+	instancer.Update(kitsd.Event{Instances: urls})
+	return instancer
 }
 
 func cleanURLs(raw []string) []string {

@@ -82,10 +82,10 @@ func TestRetryTimeout(t *testing.T) {
 		t.Error(err)
 	}
 
-	go func() { time.Sleep(10 * timeout); step <- struct{}{} }() // a delayed flush
-	invoke()                                                     // invoke the endpoint
-	if err := <-errs; err != context.DeadlineExceeded {          // that should not succeed
-		t.Errorf("wanted %v, got none", context.DeadlineExceeded)
+	go func() { time.Sleep(10 * timeout); step <- struct{}{} }()  // a delayed flush
+	invoke()                                                      // invoke the endpoint
+	if err := <-errs; !errors.Is(err, context.DeadlineExceeded) { // that should not succeed
+		t.Errorf("wanted %v, got %v", context.DeadlineExceeded, err)
 	}
 }
 
