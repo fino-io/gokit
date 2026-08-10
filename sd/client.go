@@ -6,28 +6,24 @@ import (
 	"strings"
 
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/sd"
+	kitsd "github.com/go-kit/kit/sd"
 
 	"github.com/fino-io/gokit/sd/direct"
 	"github.com/fino-io/gokit/sd/etcdv3"
 )
 
-type Client interface {
-	// Register our instance.
-	Register(url, service string, tags []string) error
-
-	// Deregister At the end of our service lifecycle, for example at the end of func main,
-	// we should make sure to deregister ourselves. This is important! Don't
-	// accidentally skip this step by invoking a log.Fatal or os.Exit in the
-	// interim, which bypasses the defer stack.
+type Registrar interface {
+	Register(url, service string) error
 	Deregister() error
+}
 
-	// Instancer It's likely that we'll also want to connect to other services and call
-	// their methods. We can build an Instancer to listen for changes from sd,
-	// create Endpointer, wrap it with a load-balancer to pick a single
-	// endpoint, and finally wrap it with a retry strategy to get something that
-	// can be used as an endpoint directly.
-	Instancer(service string) sd.Instancer
+type Discovery interface {
+	Instancer(service string) (kitsd.Instancer, error)
+}
+
+type Client struct {
+	Registrar Registrar
+	Discovery Discovery
 }
 
 const (
@@ -40,7 +36,7 @@ var (
 	errEtcdURLRequired = errors.New("sd: etcd url is required")
 )
 
-func New(cfg *Config, logger log.Logger) (Client, error) {
+func New(cfg *Config, logger log.Logger) (*Client, error) {
 	if cfg == nil {
 		return nil, errNilConfig
 	}
@@ -56,12 +52,13 @@ func New(cfg *Config, logger log.Logger) (Client, error) {
 		if len(urls) == 0 {
 			return nil, errEtcdURLRequired
 		}
-		if cfg.EtcdV3 == nil {
-			cfg.EtcdV3 = &etcdv3.Config{}
+		client, err := etcdv3.New(urls, cfg.EtcdV3, logger)
+		if err != nil {
+			return nil, err
 		}
-		return etcdv3.New(urls, cfg.EtcdV3, logger)
+		return &Client{Registrar: client, Discovery: client}, nil
 	case DirectMode:
-		return direct.New(cfg.Direct), nil
+		return &Client{Discovery: direct.New(cfg.Direct)}, nil
 	default:
 		return nil, fmt.Errorf("sd: unsupported mode %q", cfg.Mode)
 	}

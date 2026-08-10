@@ -15,8 +15,9 @@ import (
 )
 
 type Client struct {
-	client    etcdv3.Client
-	registrar *etcdv3.Registrar
+	registry  etcdv3.Client
+	discovery etcdv3.Client
+	service   etcdv3.Service
 	logger    log.Logger
 	mtx       sync.Mutex
 }
@@ -50,19 +51,21 @@ func New(urls []string, cfg *Config, logger log.Logger) (*Client, error) {
 		DialKeepAlive: time.Second * time.Duration(cfg.DialKeepAlive),
 	}
 
-	client, err := etcdv3.NewClient(context.Background(), urls, options)
+	registry, err := etcdv3.NewClient(context.Background(), urls, options)
 	if err != nil {
-		return nil, fmt.Errorf("sd/etcdv3: create client: %w", err)
+		return nil, fmt.Errorf("sd/etcdv3: create registry client: %w", err)
 	}
 
-	return &Client{
-		client: client,
-		logger: logger,
-	}, nil
+	discovery, err := etcdv3.NewClient(context.Background(), urls, options)
+	if err != nil {
+		return nil, fmt.Errorf("sd/etcdv3: create discovery client: %w", err)
+	}
+
+	return &Client{registry: registry, discovery: discovery, logger: logger}, nil
 }
 
-func (c *Client) Register(urlStr, name string, tags []string) error {
-	if c == nil || c.client == nil {
+func (c *Client) Register(urlStr, name string) error {
+	if c == nil || c.registry == nil {
 		return errors.New("sd/etcdv3: nil client")
 	}
 
@@ -71,15 +74,19 @@ func (c *Client) Register(urlStr, name string, tags []string) error {
 		return err
 	}
 
-	registrar := etcdv3.NewRegistrar(c.client, service, c.logger)
-
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if c.registrar != nil {
-		c.registrar.Deregister()
+
+	if c.service.Key != "" {
+		if err := c.registry.Deregister(c.service); err != nil {
+			return fmt.Errorf("sd/etcdv3: deregister previous service: %w", err)
+		}
 	}
-	registrar.Register()
-	c.registrar = registrar
+
+	if err := c.registry.Register(service); err != nil {
+		return fmt.Errorf("sd/etcdv3: register service: %w", err)
+	}
+	c.service = service
 	return nil
 }
 
@@ -90,25 +97,30 @@ func (c *Client) Deregister() error {
 
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
-	if c.registrar != nil {
-		c.registrar.Deregister()
-		c.registrar = nil
+	if c.service.Key != "" {
+		if err := c.registry.Deregister(c.service); err != nil {
+			return fmt.Errorf("sd/etcdv3: deregister service: %w", err)
+		}
+		c.service = etcdv3.Service{}
 	}
 	return nil
 }
 
-func (c *Client) Instancer(service string) kitsd.Instancer {
+func (c *Client) Instancer(service string) (kitsd.Instancer, error) {
 	service = strings.Trim(strings.TrimSpace(service), "/")
-	if c == nil || c.client == nil || service == "" {
-		return nil
+	if c == nil || c.discovery == nil {
+		return nil, errors.New("sd/etcdv3: nil client")
 	}
 
-	instancer, err := etcdv3.NewInstancer(c.client, "/"+service+"/", c.logger)
-	if err != nil {
-		_ = c.logger.Log("msg", "create etcd instancer failed", "service", service, "err", err)
-		return nil
+	if service == "" {
+		return nil, errors.New("sd/etcdv3: service name is required")
 	}
-	return instancer
+
+	instancer, err := etcdv3.NewInstancer(c.discovery, "/"+service+"/", c.logger)
+	if err != nil {
+		return nil, fmt.Errorf("sd/etcdv3: create instancer: %w", err)
+	}
+	return instancer, nil
 }
 
 func newService(rawURL, name string) (etcdv3.Service, error) {

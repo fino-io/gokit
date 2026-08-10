@@ -1,6 +1,7 @@
 package etcdv3
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/go-kit/kit/log"
@@ -35,11 +36,11 @@ func TestNewServiceAcceptsBareHostPort(t *testing.T) {
 
 func TestRegisterReplacesPreviousRegistration(t *testing.T) {
 	backend := &fakeClient{}
-	client := &Client{client: backend, logger: log.NewNopLogger()}
-	if err := client.Register("http://127.0.0.1:8080", "users", nil); err != nil {
+	client := &Client{registry: backend, logger: log.NewNopLogger()}
+	if err := client.Register("http://127.0.0.1:8080", "users"); err != nil {
 		t.Fatal(err)
 	}
-	if err := client.Register("http://127.0.0.1:8081", "users", nil); err != nil {
+	if err := client.Register("http://127.0.0.1:8081", "users"); err != nil {
 		t.Fatal(err)
 	}
 	if len(backend.deregistered) != 1 || backend.deregistered[0].Key != "/users/127.0.0.1:8080" {
@@ -54,14 +55,33 @@ func TestRegisterReplacesPreviousRegistration(t *testing.T) {
 	}
 }
 
+func TestRegisterReturnsBackendError(t *testing.T) {
+	backend := &fakeClient{registerErr: errors.New("unavailable")}
+	client := &Client{registry: backend, logger: log.NewNopLogger()}
+	if err := client.Register("http://127.0.0.1:8080", "users"); !errors.Is(err, backend.registerErr) {
+		t.Fatalf("expected %v, got %v", backend.registerErr, err)
+	}
+}
+
+func TestInstancerRequiresDiscoveryClient(t *testing.T) {
+	client := &Client{logger: log.NewNopLogger()}
+	if _, err := client.Instancer("users"); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 type fakeClient struct {
 	registered   []etcdv3.Service
 	deregistered []etcdv3.Service
+	registerErr  error
 }
 
 func (c *fakeClient) GetEntries(string) ([]string, error) { return nil, nil }
 func (c *fakeClient) WatchPrefix(string, chan struct{})   {}
 func (c *fakeClient) Register(service etcdv3.Service) error {
+	if c.registerErr != nil {
+		return c.registerErr
+	}
 	c.registered = append(c.registered, service)
 	return nil
 }

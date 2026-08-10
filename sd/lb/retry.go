@@ -2,9 +2,6 @@ package lb
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-kit/kit/endpoint"
@@ -13,27 +10,13 @@ import (
 // RetryError is an error wrapper that is used by the retry mechanism. All
 // errors returned by the retry mechanism via its endpoint will be RetryErrors.
 type RetryError struct {
-	RawErrors []error // all errors encountered from endpoints directly
-	Final     error   // the final, terminating error
+	Final    error
+	Attempts int
 }
 
 func (e RetryError) Unwrap() error { return e.Final }
 
-func (e RetryError) Error() string {
-	var suffix string
-	n := len(e.RawErrors)
-	if n > 0 && errors.Is(e.RawErrors[n-1], e.Final) {
-		n--
-	}
-	if n > 0 {
-		a := make([]string, n)
-		for i := 0; i < n; i++ {
-			a[i] = e.RawErrors[i].Error()
-		}
-		suffix = fmt.Sprintf(" (previously: %s)", strings.Join(a, "; "))
-	}
-	return fmt.Sprintf("%v%s", e.Final, suffix)
-}
+func (e RetryError) Error() string { return e.Final.Error() }
 
 // Callback is a function that is given the current attempt count and the error
 // received from the underlying endpoint. It should return whether the Retry
@@ -92,6 +75,7 @@ func RetryWithCallback(timeout, interval time.Duration, b Balancer, cb Callback)
 		for i := 1; ; i++ {
 			if err := newctx.Err(); err != nil {
 				final.Final = err
+				final.Attempts = i - 1
 				return nil, final
 			}
 
@@ -102,9 +86,9 @@ func RetryWithCallback(timeout, interval time.Duration, b Balancer, cb Callback)
 			if err != nil {
 				if newctx.Err() != nil {
 					final.Final = newctx.Err()
+					final.Attempts = i
 					return nil, final
 				}
-				final.RawErrors = append(final.RawErrors, err)
 
 				keepTrying, replacement := cb(i, err)
 				if replacement != nil {
@@ -112,11 +96,13 @@ func RetryWithCallback(timeout, interval time.Duration, b Balancer, cb Callback)
 				}
 				if !keepTrying {
 					final.Final = err
+					final.Attempts = i
 					return nil, final
 				}
 
 				if !wait(newctx, interval) {
 					final.Final = newctx.Err()
+					final.Attempts = i
 					return nil, final
 				}
 				continue

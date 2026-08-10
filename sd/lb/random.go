@@ -1,8 +1,7 @@
 package lb
 
 import (
-	"crypto/rand"
-	"math/big"
+	"math/rand/v2"
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/sd"
@@ -26,10 +25,5 @@ func (r *random) Endpoint() (endpoint.Endpoint, error) {
 		return nil, ErrNoEndpoints
 	}
 
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(len(endpoints))))
-	if err != nil {
-		return nil, err
-	}
-
-	return endpoints[n.Int64()], nil
+	return endpoints[rand.IntN(len(endpoints))], nil
 }
