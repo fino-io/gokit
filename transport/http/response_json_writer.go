@@ -2,7 +2,7 @@ package http
 
 import (
 	"context"
-	"encoding/json"
+	stdjson "encoding/json"
 	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
@@ -57,7 +57,7 @@ func normalizeProtoJSONResponse(response interface{}) (interface{}, error) {
 	return response, nil
 }
 
-func marshalProtoJSON(message proto.Message) (json.RawMessage, error) {
+func marshalProtoJSON(message proto.Message) (stdjson.RawMessage, error) {
 	data, err := (protojson.MarshalOptions{
 		UseProtoNames:  false,
 		UseEnumNumbers: false,
@@ -65,5 +65,5 @@ func marshalProtoJSON(message proto.Message) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return data, nil
+	return stdjson.RawMessage(data), nil
 }
