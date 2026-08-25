@@ -58,6 +58,17 @@ func CoreErrorFromError(err error) *core.Error {
 		return coreErr
 	}
 
+	var coder statusCoder
+	if errors.As(err, &coder) {
+		if status := coder.StatusCode(); status >= http.StatusBadRequest && status <= 599 {
+			message := http.StatusText(status)
+			if message == "" {
+				message = http.StatusText(http.StatusInternalServerError)
+			}
+			return core.NewErrorFrom(int32(status), message)
+		}
+	}
+
 	return core.NewErrorFrom(http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 }
 

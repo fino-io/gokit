@@ -64,6 +64,35 @@ func TestCoreErrorFromErrorPrefersBusinessCode(t *testing.T) {
 	assert.Equal(t, "task not found", got.Message)
 }
 
+func TestCoreErrorFromErrorMapsWrappedHTTPStatusWithoutCause(t *testing.T) {
+	err := WrapError(errors.New("invalid input"), http.StatusBadRequest, "cannot decode request")
+
+	got := CoreErrorFromError(err)
+
+	require.Equal(t, int32(http.StatusBadRequest), got.Code.Code)
+	require.Equal(t, http.StatusText(http.StatusBadRequest), got.Message)
+	require.NotContains(t, got.Message, "invalid input")
+}
+
+func TestCoreErrorFromErrorHidesInternalCause(t *testing.T) {
+	err := WrapError(errors.New("database password"), http.StatusInternalServerError, "query failed")
+
+	got := CoreErrorFromError(err)
+
+	require.Equal(t, int32(http.StatusInternalServerError), got.Code.Code)
+	require.Equal(t, http.StatusText(http.StatusInternalServerError), got.Message)
+	require.NotContains(t, got.Message, "database password")
+}
+
+func TestCoreErrorFromErrorIgnoresNonErrorHTTPStatus(t *testing.T) {
+	err := WrapError(errors.New("redirect"), http.StatusFound, "redirected")
+
+	got := CoreErrorFromError(err)
+
+	require.Equal(t, int32(http.StatusInternalServerError), got.Code.Code)
+	require.Equal(t, http.StatusText(http.StatusInternalServerError), got.Message)
+}
+
 func TestStatusCodeFromErrorFindsWrappedStatusCoder(t *testing.T) {
 	err := fmt.Errorf("endpoint failed: %w", testCodedError{})
 	assert.Equal(t, http.StatusNotFound, StatusCodeFromError(err))
