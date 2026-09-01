@@ -87,14 +87,6 @@ func TraceEndpoint(tracer trace.Tracer, operationName string, opts ...EndpointOp
 	}
 }
 
-// TraceServer returns a Middleware that wraps the `next` Endpoint in an
-// OpenTelemetry Span called `operationName` with server span kind.
-func TraceServer(tracer trace.Tracer, operationName string, opts ...EndpointOption) endpoint.Middleware {
-	opts = append(opts, WithSpanStartOptions(trace.WithSpanKind(trace.SpanKindServer)))
-
-	return TraceEndpoint(tracer, operationName, opts...)
-}
-
 // TraceClient returns a Middleware that wraps the `next` Endpoint in an
 // OpenTelemetry Span called `operationName` with client span kind.
 func TraceClient(tracer trace.Tracer, operationName string, opts ...EndpointOption) endpoint.Middleware {

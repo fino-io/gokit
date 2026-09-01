@@ -44,7 +44,26 @@ func TestHTTPServerMiddlewareCreatesServerSpan(t *testing.T) {
 		t.Fatalf("expected server span, got %s", span.SpanKind())
 	}
 	assertAttribute(t, span.Attributes(), "http.method", http.MethodPost)
-	assertAttribute(t, span.Attributes(), "http.path", "/users")
+	assertAttribute(t, span.Attributes(), "http.scheme", "http")
+	assertIntAttribute(t, span.Attributes(), "http.status_code", http.StatusNoContent)
+	assertNoAttribute(t, span.Attributes(), "http.url")
+	assertNoAttribute(t, span.Attributes(), "http.path")
+	assertNoAttribute(t, span.Attributes(), "http.query")
+}
+
+func TestHTTPServerMiddlewareRecordsServerErrorStatus(t *testing.T) {
+	tracer, recorder := testTracer()
+	handler := HTTPServerMiddleware(tracer)(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(http.StatusBadGateway)
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "http://example.test/users", nil))
+
+	span := endedSpans(t, recorder, 1)[0]
+	assertIntAttribute(t, span.Attributes(), "http.status_code", http.StatusBadGateway)
+	if span.Status().Code != codes.Error {
+		t.Fatalf("expected error status, got %s", span.Status().Code)
+	}
 }
 
 func TestHTTPServerMiddlewarePreservesIncomingTraceID(t *testing.T) {
@@ -115,7 +134,7 @@ func TestServerTracingMiddlewareWithNilTracerOnlyPropagates(t *testing.T) {
 	}
 }
 
-func TestHTTPToContextPreservesExistingSpanContext(t *testing.T) {
+func TestExtractHTTPContextPreservesExistingSpanContext(t *testing.T) {
 	parent := trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID:    trace.TraceID{0x01},
 		SpanID:     trace.SpanID{0x02},
@@ -125,13 +144,13 @@ func TestHTTPToContextPreservesExistingSpanContext(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "http://example.test/users", nil)
 	request.Header.Set("traceparent", traceparent)
 
-	got := trace.SpanContextFromContext(HTTPToContext(ctx, request))
+	got := trace.SpanContextFromContext(extractHTTPContext(ctx, request))
 	if got.TraceID() != parent.TraceID() || got.SpanID() != parent.SpanID() || got.TraceFlags() != parent.TraceFlags() || got.IsRemote() != parent.IsRemote() {
 		t.Fatalf("expected existing span context to be preserved, got %+v", got)
 	}
 }
 
-func TestGRPCToContextPreservesExistingSpanContext(t *testing.T) {
+func TestExtractGRPCContextPreservesExistingSpanContext(t *testing.T) {
 	parent := trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID:    trace.TraceID{0x01},
 		SpanID:     trace.SpanID{0x02},
@@ -139,7 +158,7 @@ func TestGRPCToContextPreservesExistingSpanContext(t *testing.T) {
 	})
 	ctx := trace.ContextWithSpanContext(context.Background(), parent)
 
-	got := trace.SpanContextFromContext(GRPCToContext(ctx, metadata.Pairs("traceparent", traceparent)))
+	got := trace.SpanContextFromContext(extractGRPCContext(ctx, metadata.Pairs("traceparent", traceparent)))
 	if got.TraceID() != parent.TraceID() || got.SpanID() != parent.SpanID() || got.TraceFlags() != parent.TraceFlags() || got.IsRemote() != parent.IsRemote() {
 		t.Fatalf("expected existing span context to be preserved, got %+v", got)
 	}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/felixge/httpsnoop"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -23,17 +25,23 @@ func HTTPServerMiddleware(tracer trace.Tracer) func(http.Handler) http.Handler {
 		}
 
 		return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			ctx := HTTPToContext(request.Context(), request)
+			ctx := extractHTTPContext(request.Context(), request)
 			ctx, span := startServerSpan(
 				tracer,
 				ctx,
 				"HTTP "+request.Method,
 				trace.WithSpanKind(trace.SpanKindServer),
-				trace.WithAttributes(HTTPAttributes(request)...),
+				trace.WithAttributes(httpAttributes(request)...),
 			)
 			defer span.End()
 
-			next.ServeHTTP(writer, request.WithContext(ctx))
+			metrics := httpsnoop.CaptureMetricsFn(writer, func(writer http.ResponseWriter) {
+				next.ServeHTTP(writer, request.WithContext(ctx))
+			})
+			span.SetAttributes(attribute.Int("http.status_code", metrics.Code))
+			if metrics.Code >= http.StatusInternalServerError {
+				span.SetStatus(codes.Error, http.StatusText(metrics.Code))
+			}
 		})
 	}
 }
@@ -47,7 +55,7 @@ func HTTPServerMiddleware(tracer trace.Tracer) func(http.Handler) http.Handler {
 func GRPCUnaryServerTracingInterceptor(tracer trace.Tracer) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, request any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		md, _ := metadata.FromIncomingContext(ctx)
-		ctx = GRPCToContext(ctx, md)
+		ctx = extractGRPCContext(ctx, md)
 
 		name := "gRPC"
 		if info != nil && info.FullMethod != "" {

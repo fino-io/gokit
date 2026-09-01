@@ -14,37 +14,26 @@ var httpPropagator = propagation.NewCompositeTextMapPropagator(
 	propagation.Baggage{},
 )
 
-// HTTPToContext extracts OpenTelemetry propagation headers from req.
-func HTTPToContext(ctx context.Context, req *http.Request) context.Context {
+// extractHTTPContext extracts OpenTelemetry propagation headers from req.
+func extractHTTPContext(ctx context.Context, req *http.Request) context.Context {
 	if req == nil || trace.SpanContextFromContext(ctx).IsValid() {
 		return ctx
 	}
 	return httpPropagator.Extract(ctx, propagation.HeaderCarrier(req.Header))
 }
 
-// HTTPAttributes returns low-cardinality HTTP attributes for a request span.
-func HTTPAttributes(req *http.Request) []attribute.KeyValue {
+// httpAttributes returns low-cardinality HTTP attributes for a request span.
+func httpAttributes(req *http.Request) []attribute.KeyValue {
 	if req == nil {
 		return nil
 	}
 
-	attrs := []attribute.KeyValue{
-		attribute.String("http.method", req.Method),
-	}
+	attrs := []attribute.KeyValue{attribute.String("http.method", req.Method)}
 	if req.URL == nil {
 		return attrs
 	}
 
-	attrs = append(attrs,
-		attribute.String("http.url", req.URL.String()),
-		attribute.String("http.scheme", httpScheme(req)),
-		attribute.String("http.path", req.URL.Path),
-	)
-	if req.URL.RawQuery != "" {
-		attrs = append(attrs, attribute.String("http.query", req.URL.RawQuery))
-	}
-
-	return attrs
+	return append(attrs, attribute.String("http.scheme", httpScheme(req)))
 }
 
 func InjectHTTPHeader(ctx context.Context, header http.Header) {

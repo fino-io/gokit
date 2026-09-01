@@ -15,21 +15,12 @@ var grpcPropagator = propagation.NewCompositeTextMapPropagator(
 	propagation.Baggage{},
 )
 
-// GRPCToContext extracts OpenTelemetry propagation metadata from md.
-func GRPCToContext(ctx context.Context, md metadata.MD) context.Context {
+// extractGRPCContext extracts OpenTelemetry propagation metadata from md.
+func extractGRPCContext(ctx context.Context, md metadata.MD) context.Context {
 	if trace.SpanContextFromContext(ctx).IsValid() {
 		return ctx
 	}
 	return grpcPropagator.Extract(ctx, metadataTextMap(md))
-}
-
-// GRPCUnaryServerInterceptor extracts OpenTelemetry propagation metadata before
-// the remaining unary server interceptors run.
-func GRPCUnaryServerInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		md, _ := metadata.FromIncomingContext(ctx)
-		return handler(GRPCToContext(ctx, md), req)
-	}
 }
 
 // GRPCUnaryClientInterceptor creates a client span and propagates its context

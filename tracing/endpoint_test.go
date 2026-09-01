@@ -47,18 +47,18 @@ func TestTraceEndpointUsesRequestScopedOperationName(t *testing.T) {
 	}
 }
 
-func TestTraceServerAndClientUseSpanKind(t *testing.T) {
+func TestTraceEndpointAndClientUseSpanKind(t *testing.T) {
 	tests := []struct {
 		name       string
 		middleware func(trace.Tracer) endpoint.Middleware
 		wantKind   trace.SpanKind
 	}{
 		{
-			name: "server",
+			name: "endpoint",
 			middleware: func(tracer trace.Tracer) endpoint.Middleware {
-				return TraceServer(tracer, "server")
+				return TraceEndpoint(tracer, "endpoint")
 			},
-			wantKind: trace.SpanKindServer,
+			wantKind: trace.SpanKindInternal,
 		},
 		{
 			name: "client",
@@ -127,14 +127,14 @@ func TestTraceEndpointAppliesAttributes(t *testing.T) {
 	assertAttribute(t, attrs, "dynamic", "value")
 }
 
-func TestHTTPToContextExtractsTraceParent(t *testing.T) {
+func TestExtractHTTPContextExtractsTraceParent(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "http://example.test/users?id=1", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	req.Header.Set("traceparent", traceparent)
 
-	assertRemoteTraceContext(t, HTTPToContext(context.Background(), req))
+	assertRemoteTraceContext(t, extractHTTPContext(context.Background(), req))
 }
 
 func TestHTTPAttributes(t *testing.T) {
@@ -143,29 +143,18 @@ func TestHTTPAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	attrs := HTTPAttributes(req)
+	attrs := httpAttributes(req)
 	assertAttribute(t, attrs, "http.method", http.MethodPost)
-	assertAttribute(t, attrs, "http.url", "https://example.test/users?id=1")
 	assertAttribute(t, attrs, "http.scheme", "https")
-	assertAttribute(t, attrs, "http.path", "/users")
-	assertAttribute(t, attrs, "http.query", "id=1")
+	assertNoAttribute(t, attrs, "http.url")
+	assertNoAttribute(t, attrs, "http.path")
+	assertNoAttribute(t, attrs, "http.query")
 }
 
-func TestGRPCToContextExtractsTraceParent(t *testing.T) {
+func TestExtractGRPCContextExtractsTraceParent(t *testing.T) {
 	md := metadata.Pairs("traceparent", traceparent)
 
-	assertRemoteTraceContext(t, GRPCToContext(context.Background(), md))
-}
-
-func TestGRPCUnaryServerInterceptorExtractsTraceParent(t *testing.T) {
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs("traceparent", traceparent))
-	_, err := GRPCUnaryServerInterceptor()(ctx, nil, nil, func(ctx context.Context, _ any) (any, error) {
-		assertRemoteTraceContext(t, ctx)
-		return nil, nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
+	assertRemoteTraceContext(t, extractGRPCContext(context.Background(), md))
 }
 
 func TestNewWithNilConfigReturnsError(t *testing.T) {
@@ -301,4 +290,23 @@ func assertAttribute(t *testing.T, attrs []attribute.KeyValue, key, value string
 		}
 	}
 	t.Fatalf("expected attribute %s=%s in %v", key, value, attrs)
+}
+
+func assertIntAttribute(t *testing.T, attrs []attribute.KeyValue, key string, value int) {
+	t.Helper()
+	for _, attr := range attrs {
+		if string(attr.Key) == key && attr.Value.AsInt64() == int64(value) {
+			return
+		}
+	}
+	t.Fatalf("expected attribute %s=%d in %v", key, value, attrs)
+}
+
+func assertNoAttribute(t *testing.T, attrs []attribute.KeyValue, key string) {
+	t.Helper()
+	for _, attr := range attrs {
+		if string(attr.Key) == key {
+			t.Fatalf("unexpected attribute %s=%v", key, attr.Value)
+		}
+	}
 }

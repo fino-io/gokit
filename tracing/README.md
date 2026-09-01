@@ -30,7 +30,7 @@ tracing:
 普通服务优先使用 `New`：
 
 ```go
-tracer, shutdown, err := tracing.New("example.user.UserService")
+tracer, shutdown, err := tracing.New("user-server")
 if err != nil {
 	logs.Warnw("failed to set tracer", "error", err)
 }
@@ -42,7 +42,7 @@ defer func() {
 测试或嵌入式场景需要显式传配置时，使用 `NewWith`：
 
 ```go
-tracer, shutdown, err := tracing.NewWith(ctx, "example.user.UserService", &tracing.Config{
+tracer, shutdown, err := tracing.NewWith(ctx, "user-server", &tracing.Config{
 	Enable:            true,
 	Endpoint:          "otel-collector:4318",
 	SampleRatio:       0.05,
@@ -51,6 +51,8 @@ tracer, shutdown, err := tracing.NewWith(ctx, "example.user.UserService", &traci
 	ServiceInstanceID: "user-server-7d8f",
 })
 ```
+
+第一个参数是稳定的部署服务名，应与日志、指标和部署平台使用的服务标识保持一致；不要使用带用户数据或请求参数的动态名称。
 
 `NewTracer` 和 `NewTraceProvider` 是更底层的辅助函数，适合只需要指定 OTLP endpoint 的调用方。应用代码通常优先使用 `New` 或 `NewWith`。
 
@@ -67,7 +69,7 @@ grpc.NewServer(grpc.ChainUnaryInterceptor(
 ))
 ```
 
-两个 middleware 都会先提取上游 trace context，再创建本地 server span，因此 access log 可以直接从请求 context 记录 `trace_id` 和 `span_id`。`GRPCUnaryServerInterceptor()` 保留为仅提取 metadata 的兼容 API；使用 server span 时不要同时串联这两个 gRPC interceptor。
+两个 middleware 都会先提取上游 trace context，再创建本地 server span，因此 access log 可以直接从请求 context 记录 `trace_id` 和 `span_id`。不要再额外串联只负责传播的 transport interceptor。
 
 transport 层应只创建一个 server span。endpoint 层如果还需要记录业务操作，应创建 child span，并使用 internal span kind，避免同一个请求出现两个 server span。
 
@@ -232,13 +234,7 @@ Sidecar 的优点是业务进程只依赖本地 Collector，网络抖动和后�
 
 ## 上下文传播
 
-HTTP 入站请求应在 endpoint 执行前提取 W3C TraceContext 和 Baggage：
-
-```go
-serverOptions := []httptransport.ServerOption{
-	httptransport.ServerBefore(tracing.HTTPToContext),
-}
-```
+HTTP 和 gRPC 入站请求由上面的 server middleware 统一提取 W3C TraceContext 和 Baggage，并在 access log、路由和 endpoint 执行前创建 server span。应用层不需要再通过 transport 的 `ServerBefore` 重复提取上下文。
 
 HTTP 出站请求可使用 `InjectHTTPHeader` 注入传播头：
 
@@ -246,26 +242,18 @@ HTTP 出站请求可使用 `InjectHTTPHeader` 注入传播头：
 tracing.InjectHTTPHeader(ctx, req.Header)
 ```
 
-gRPC 入站请求应在 endpoint 执行前从 metadata 提取 trace 上下文：
-
-```go
-serverOptions := []grpctransport.ServerOption{
-	grpctransport.ServerBefore(tracing.GRPCToContext),
-}
-```
-
 当前 propagator 使用 W3C TraceContext 和 Baggage。如果运行环境仍依赖 B3 或 Jaeger header，需要先补充兼容 propagator，再期望跨技术栈 trace 连续。
 
 ## Endpoint Span
 
-服务端和客户端 endpoint 可分别使用 `TraceServer` 和 `TraceClient` 包装：
+transport 层已经创建 server span。服务端业务 endpoint 使用 `TraceEndpoint` 创建 internal child span；客户端 endpoint 使用 `TraceClient` 创建 client span：
 
 ```go
-endpoint := tracing.TraceServer(tracer, "GetUser")(endpoint)
+endpoint := tracing.TraceEndpoint(tracer, "GetUser")(endpoint)
 clientEndpoint := tracing.TraceClient(tracer, "GetUser")(clientEndpoint)
 ```
 
-`TraceServer` 创建 server span，`TraceClient` 创建 client span。两者都会记录返回的 error 和 `endpoint.Failer` 暴露的业务错误。若业务错误只希望作为属性记录、不希望把 span 标记为失败，可使用 `WithIgnoreBusinessError`。
+`TraceEndpoint` 创建 internal span，`TraceClient` 创建 client span。两者都会记录返回的 error 和 `endpoint.Failer` 暴露的业务错误。若业务错误只希望作为属性记录、不希望把 span 标记为失败，可使用 `WithIgnoreBusinessError`。
 
 operation name 应保持低基数，例如 RPC 方法名。不要把用户 ID、资源 ID、原始 path、query string 或请求体字段放进 span name 或高频属性。
 
