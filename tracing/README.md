@@ -54,6 +54,23 @@ tracer, shutdown, err := tracing.NewWith(ctx, "example.user.UserService", &traci
 
 `NewTracer` 和 `NewTraceProvider` 是更底层的辅助函数，适合只需要指定 OTLP endpoint 的调用方。应用代码通常优先使用 `New` 或 `NewWith`。
 
+## 传输层服务端追踪
+
+HTTP 和 gRPC 服务应在 access log、路由和 endpoint 之前创建 transport-level server span：
+
+```go
+handler = tracing.HTTPServerMiddleware(tracer)(handler)
+
+grpc.NewServer(grpc.ChainUnaryInterceptor(
+	tracing.GRPCUnaryServerTracingInterceptor(tracer),
+	accesslog.UnaryServerInterceptor(accesslog.LoadConfig()),
+))
+```
+
+两个 middleware 都会先提取上游 trace context，再创建本地 server span，因此 access log 可以直接从请求 context 记录 `trace_id` 和 `span_id`。`GRPCUnaryServerInterceptor()` 保留为仅提取 metadata 的兼容 API；使用 server span 时不要同时串联这两个 gRPC interceptor。
+
+transport 层应只创建一个 server span。endpoint 层如果还需要记录业务操作，应创建 child span，并使用 internal span kind，避免同一个请求出现两个 server span。
+
 ## 搭建 otel-collector:4318
 
 `otel-collector:4318` 是服务访问 OpenTelemetry Collector 的 OTLP HTTP 接收地址。Collector 配置由 `receivers`、`processors`、`exporters` 和 `service.pipelines` 组成；只在 `receivers` 里声明组件不会生效，必须把它放进对应 pipeline。

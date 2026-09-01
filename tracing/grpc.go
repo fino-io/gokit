@@ -17,6 +17,9 @@ var grpcPropagator = propagation.NewCompositeTextMapPropagator(
 
 // GRPCToContext extracts OpenTelemetry propagation metadata from md.
 func GRPCToContext(ctx context.Context, md metadata.MD) context.Context {
+	if trace.SpanContextFromContext(ctx).IsValid() {
+		return ctx
+	}
 	return grpcPropagator.Extract(ctx, metadataTextMap(md))
 }
 

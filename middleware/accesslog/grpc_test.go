@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -38,7 +39,9 @@ func TestUnaryServerInterceptorLogsStructuredServerError(t *testing.T) {
 	assertField(t, entry.Fields, "code", codes.Unavailable.String())
 	assertField(t, entry.Fields, "remote_ip", "203.0.113.11")
 	assertField(t, entry.Fields, "request_id", "req-grpc")
-	assertField(t, entry.Fields, "trace_id", testTraceID.String())
+	if span := trace.SpanContextFromContext(logger.logContext(t)); span.TraceID() != testTraceID {
+		t.Fatalf("trace ID = %s, want %s", span.TraceID(), testTraceID)
+	}
 }
 
 func TestUnaryServerInterceptorSkipsSuccessfulHealthMethod(t *testing.T) {

@@ -16,13 +16,13 @@ const (
 
 type logFunc func(context.Context, level, string, ...any)
 
-func defaultLog(_ context.Context, level level, message string, fields ...any) {
+func defaultLog(ctx context.Context, level level, message string, fields ...any) {
 	switch level {
 	case levelWarn:
-		logs.Warnw(message, fields...)
+		logs.Ctx(ctx).Warnw(message, fields...)
 	case levelError:
-		logs.Errorw(message, fields...)
+		logs.Ctx(ctx).Errorw(message, fields...)
 	default:
-		logs.Infow(message, fields...)
+		logs.Ctx(ctx).Infow(message, fields...)
 	}
 }

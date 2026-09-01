@@ -53,7 +53,6 @@ func logHTTP(r *http.Request, metrics httpsnoop.Metrics, duration time.Duration,
 		"remote_ip", remoteHost(r.RemoteAddr),
 		"request_id", requestID,
 	}
-	fields = append(fields, traceFields(r.Context())...)
 	log(r.Context(), httpLevel(metrics.Code), "http access", fields...)
 }
 

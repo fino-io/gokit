@@ -37,8 +37,10 @@ func TestHTTPMiddlewareLogsStructuredServerError(t *testing.T) {
 	assertField(t, entry.Fields, "bytes", int64(4))
 	assertField(t, entry.Fields, "remote_ip", "203.0.113.10")
 	assertField(t, entry.Fields, "request_id", "req-http")
-	assertField(t, entry.Fields, "trace_id", testTraceID.String())
-	assertField(t, entry.Fields, "span_id", testSpanID.String())
+	span := trace.SpanContextFromContext(logger.logContext(t))
+	if span.TraceID() != testTraceID || span.SpanID() != testSpanID {
+		t.Fatalf("trace context = %s/%s, want %s/%s", span.TraceID(), span.SpanID(), testTraceID, testSpanID)
+	}
 }
 
 func TestHTTPMiddlewareSkipsSuccessfulConfiguredPath(t *testing.T) {

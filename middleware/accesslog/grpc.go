@@ -49,7 +49,6 @@ func logGRPC(ctx context.Context, method string, code codes.Code, duration time.
 		"remote_ip", grpcRemoteIP(ctx),
 		"request_id", requestID,
 	}
-	fields = append(fields, traceFields(ctx)...)
 	log(ctx, grpcLevel(code), "grpc access", fields...)
 }
 

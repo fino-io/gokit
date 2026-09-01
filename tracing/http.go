@@ -6,6 +6,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var httpPropagator = propagation.NewCompositeTextMapPropagator(
@@ -15,7 +16,7 @@ var httpPropagator = propagation.NewCompositeTextMapPropagator(
 
 // HTTPToContext extracts OpenTelemetry propagation headers from req.
 func HTTPToContext(ctx context.Context, req *http.Request) context.Context {
-	if req == nil {
+	if req == nil || trace.SpanContextFromContext(ctx).IsValid() {
 		return ctx
 	}
 	return httpPropagator.Extract(ctx, propagation.HeaderCarrier(req.Header))
