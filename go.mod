@@ -5,8 +5,8 @@ go 1.25.12
 require (
 	github.com/cenk/backoff v2.2.1+incompatible
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/fino-io/core/go v0.0.0-20260807082904-0a507f4a15f1
-	github.com/fino-io/finokit v0.0.0-20260807034745-ffd38313a89e
+	github.com/fino-io/core/go v0.0.0-20260901015255-1d46040b458f
+	github.com/fino-io/finokit v0.0.0-20260901015841-ec46c480110e
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -49,6 +49,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect

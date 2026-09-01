@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fino-io/finokit/logs"
@@ -42,7 +43,7 @@ func (l kitLogger) Log(kvs ...interface{}) error {
 	}
 
 	entry.Fields = keyValuesToFields(kvs)
-	l.Logger.Log(entry)
+	l.Logger.Log(context.Background(), entry)
 
 	return nil
 }

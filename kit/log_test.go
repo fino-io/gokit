@@ -1,6 +1,7 @@
 package kit
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -19,7 +20,7 @@ func (l *captureLogger) GetLevel() logs.Level { return logs.InfoLevel }
 
 func (l *captureLogger) With(...logs.Field) logs.Logger { return l }
 
-func (l *captureLogger) Log(entry logs.Entry) {
+func (l *captureLogger) Log(_ context.Context, entry logs.Entry) {
 	l.entry = entry
 }
 
