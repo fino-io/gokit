@@ -3,7 +3,6 @@ module github.com/fino-io/gokit
 go 1.25.12
 
 require (
-	github.com/cenk/backoff v2.2.1+incompatible
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fino-io/core/go v0.0.0-20260901015255-1d46040b458f
 	github.com/fino-io/finokit v0.0.0-20260901015841-ec46c480110e
