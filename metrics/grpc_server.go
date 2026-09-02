@@ -10,14 +10,14 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type GRPCServer struct {
+type grpcServer struct {
 	requests *prometheus.CounterVec
 	duration *prometheus.HistogramVec
 	inflight *prometheus.GaugeVec
 }
 
-func NewGRPCServer(registerer prometheus.Registerer, namespace string) *GRPCServer {
-	m := &GRPCServer{
+func newGRPCServer(registerer prometheus.Registerer, namespace string) *grpcServer {
+	m := &grpcServer{
 		requests: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: namespace, Name: "grpc_server_requests_total", Help: "gRPC requests completed.",
 		}, []string{"service", "method", "code"}),
@@ -35,7 +35,7 @@ func NewGRPCServer(registerer prometheus.Registerer, namespace string) *GRPCServ
 	return m
 }
 
-func (m *GRPCServer) UnaryInterceptor() grpc.UnaryServerInterceptor {
+func (m *grpcServer) unaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		service, method := splitMethod(info.FullMethod)
 		started := time.Now()

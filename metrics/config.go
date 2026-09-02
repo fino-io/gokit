@@ -1,15 +1,15 @@
 package metrics
 
-import "github.com/fino-io/finokit/config"
+import finoconfig "github.com/fino-io/finokit/config"
 
-type Config struct {
-	Enable    bool   `json:"enable" yaml:"enable" default:"false"`
-	Namespace string `json:"namespace" yaml:"namespace"`
+type config struct {
+	Enable    bool   `json:"enable" default:"false"`
+	Namespace string `json:"namespace"`
 }
 
-func loadConfig() (*Config, error) {
-	cfg := &Config{}
-	if err := config.ScanFrom(cfg, "metrics"); err != nil {
+func loadConfig() (*config, error) {
+	cfg := &config{}
+	if err := finoconfig.ScanFrom(cfg, "metrics"); err != nil {
 		return nil, err
 	}
 	return cfg, nil

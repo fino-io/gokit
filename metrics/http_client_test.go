@@ -11,8 +11,8 @@ import (
 
 func TestHTTPClientUsesConfiguredTargetLabel(t *testing.T) {
 	registry := prometheus.NewRegistry()
-	metrics := NewHTTPClient(registry, "test", "registration", "provider")
-	transport := metrics.Transport(roundTripperFunc(func(*http.Request) (*http.Response, error) {
+	client := newHTTPClient(registry, "test", "registration", "provider")
+	transport := client.transport(roundTripperFunc(func(*http.Request) (*http.Response, error) {
 		return &http.Response{StatusCode: http.StatusServiceUnavailable}, nil
 	}))
 	request, _ := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://user-input.example/path", nil)

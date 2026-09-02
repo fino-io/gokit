@@ -54,13 +54,13 @@ func TestInstrumentationNormalizesNamespace(t *testing.T) {
 }
 
 func TestMetricNamespaceUsesConfiguredOverride(t *testing.T) {
-	if got := metricNamespace(Config{Namespace: "shared-api"}, "mailgate"); got != "shared-api" {
+	if got := metricNamespace(config{Namespace: "shared-api"}, "mailgate"); got != "shared-api" {
 		t.Fatalf("namespace = %q, want shared-api", got)
 	}
 }
 
 func TestMetricNamespaceFallsBackToServiceName(t *testing.T) {
-	if got := metricNamespace(Config{}, "mailgate"); got != "mailgate" {
+	if got := metricNamespace(config{}, "mailgate"); got != "mailgate" {
 		t.Fatalf("namespace = %q, want mailgate", got)
 	}
 }

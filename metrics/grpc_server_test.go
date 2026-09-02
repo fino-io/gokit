@@ -12,9 +12,9 @@ import (
 
 func TestGRPCServerRecordsCode(t *testing.T) {
 	registry := prometheus.NewRegistry()
-	metrics := NewGRPCServer(registry, "test")
+	server := newGRPCServer(registry, "test")
 
-	_, _ = metrics.UnaryInterceptor()(
+	_, _ = server.unaryInterceptor()(
 		context.Background(), nil,
 		&grpc.UnaryServerInfo{FullMethod: "/mailgate.Service/CreateTask"},
 		func(context.Context, any) (any, error) {

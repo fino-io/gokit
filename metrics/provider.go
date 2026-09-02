@@ -11,15 +11,20 @@ import (
 	"google.golang.org/grpc"
 )
 
+type clientKey struct {
+	name   string
+	target string
+}
+
 type Instrumentation struct {
 	enabled     bool
 	namespace   string
 	registry    *prometheus.Registry
-	http        *HTTPServer
-	grpc        *GRPCServer
+	http        *httpServer
+	grpc        *grpcServer
 	mu          sync.Mutex
-	httpClients map[string]*HTTPClient
-	grpcClients map[string]*GRPCClient
+	httpClients map[clientKey]*httpClient
+	grpcClients map[clientKey]*grpcClient
 }
 
 func Disabled() *Instrumentation {
@@ -35,7 +40,7 @@ func New(service string) (*Instrumentation, error) {
 	return newInstrumentation(cfg.Enable, metricNamespace(*cfg, service)), nil
 }
 
-func metricNamespace(cfg Config, service string) string {
+func metricNamespace(cfg config, service string) string {
 	if cfg.Namespace != "" {
 		return cfg.Namespace
 	}
@@ -66,13 +71,16 @@ func newInstrumentationWithRegistry(
 	namespace string,
 	registry *prometheus.Registry,
 ) *Instrumentation {
-	return &Instrumentation{
-		enabled:     enabled,
-		namespace:   normalizeNamespace(namespace),
-		registry:    registry,
-		httpClients: make(map[string]*HTTPClient),
-		grpcClients: make(map[string]*GRPCClient),
+	instrumentation := &Instrumentation{
+		enabled:   enabled,
+		namespace: normalizeNamespace(namespace),
+		registry:  registry,
 	}
+	if enabled {
+		instrumentation.httpClients = make(map[clientKey]*httpClient)
+		instrumentation.grpcClients = make(map[clientKey]*grpcClient)
+	}
+	return instrumentation
 }
 
 func (m *Instrumentation) Handler() http.Handler {
@@ -88,11 +96,11 @@ func (m *Instrumentation) HTTPMiddleware(resolve RouteResolver) func(http.Handle
 	}
 	m.mu.Lock()
 	if m.http == nil {
-		m.http = NewHTTPServer(m.registry, m.namespace)
+		m.http = newHTTPServer(m.registry, m.namespace)
 	}
 	server := m.http
 	m.mu.Unlock()
-	return server.Middleware(resolve)
+	return server.middleware(resolve)
 }
 
 func (m *Instrumentation) GRPCUnaryInterceptor() grpc.UnaryServerInterceptor {
@@ -103,11 +111,11 @@ func (m *Instrumentation) GRPCUnaryInterceptor() grpc.UnaryServerInterceptor {
 	}
 	m.mu.Lock()
 	if m.grpc == nil {
-		m.grpc = NewGRPCServer(m.registry, m.namespace)
+		m.grpc = newGRPCServer(m.registry, m.namespace)
 	}
 	server := m.grpc
 	m.mu.Unlock()
-	return server.UnaryInterceptor()
+	return server.unaryInterceptor()
 }
 
 func (m *Instrumentation) HTTPTransport(name, target string, next http.RoundTripper) http.RoundTripper {
@@ -118,14 +126,14 @@ func (m *Instrumentation) HTTPTransport(name, target string, next http.RoundTrip
 		return next
 	}
 	m.mu.Lock()
-	key := name + "\x00" + target
+	key := clientKey{name: name, target: target}
 	client := m.httpClients[key]
 	if client == nil {
-		client = NewHTTPClient(m.registry, m.namespace, name, target)
+		client = newHTTPClient(m.registry, m.namespace, name, target)
 		m.httpClients[key] = client
 	}
 	m.mu.Unlock()
-	return client.Transport(next)
+	return client.transport(next)
 }
 
 func (m *Instrumentation) GRPCUnaryClientInterceptor(name, target string) grpc.UnaryClientInterceptor {
@@ -142,12 +150,12 @@ func (m *Instrumentation) GRPCUnaryClientInterceptor(name, target string) grpc.U
 		}
 	}
 	m.mu.Lock()
-	key := name + "\x00" + target
+	key := clientKey{name: name, target: target}
 	client := m.grpcClients[key]
 	if client == nil {
-		client = NewGRPCClient(m.registry, m.namespace, name, target)
+		client = newGRPCClient(m.registry, m.namespace, name, target)
 		m.grpcClients[key] = client
 	}
 	m.mu.Unlock()
-	return client.UnaryInterceptor()
+	return client.unaryInterceptor()
 }

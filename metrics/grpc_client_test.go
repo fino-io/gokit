@@ -29,8 +29,8 @@ func TestGRPCClientRecordsCalls(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			registry := prometheus.NewRegistry()
-			metrics := NewGRPCClient(registry, "test", "mailgate-client", "mailgate.v1.MailgateService")
-			interceptor := metrics.UnaryInterceptor()
+			client := newGRPCClient(registry, "test", "mailgate-client", "mailgate.v1.MailgateService")
+			interceptor := client.unaryInterceptor()
 
 			err := interceptor(
 				tt.ctx(),
@@ -56,10 +56,10 @@ func TestGRPCClientRecordsCalls(t *testing.T) {
 			if got := counterValue(t, registry, "test_grpc_client_requests_total", labels); got != 1 {
 				t.Fatalf("requests = %v, want 1", got)
 			}
-			if got := gaugeValue(t, registry, "test_grpc_client_requests_in_flight", labelsWithout(labels, "code")); got != 0 {
+			if got := gaugeValue(t, registry, "test_grpc_client_requests_in_flight", withoutLabel(labels, "code")); got != 0 {
 				t.Fatalf("in flight = %v, want 0", got)
 			}
-			if got := histogramCount(t, registry, "test_grpc_client_request_duration_seconds", labelsWithout(labels, "code")); got != 1 {
+			if got := histogramCount(t, registry, "test_grpc_client_request_duration_seconds", withoutLabel(labels, "code")); got != 1 {
 				t.Fatalf("duration count = %v, want 1", got)
 			}
 		})
@@ -68,13 +68,13 @@ func TestGRPCClientRecordsCalls(t *testing.T) {
 
 func TestGRPCClientTracksInFlightCall(t *testing.T) {
 	registry := prometheus.NewRegistry()
-	metrics := NewGRPCClient(registry, "test", "mailgate-client", "mailgate.v1.MailgateService")
+	client := newGRPCClient(registry, "test", "mailgate-client", "mailgate.v1.MailgateService")
 	started := make(chan struct{})
 	release := make(chan struct{})
 	done := make(chan error, 1)
 
 	go func() {
-		done <- metrics.UnaryInterceptor()(
+		done <- client.unaryInterceptor()(
 			context.Background(),
 			"/mailgate.v1.MailgateService/GetTask",
 			nil,
@@ -110,7 +110,7 @@ func TestGRPCClientTracksInFlightCall(t *testing.T) {
 	}
 }
 
-func TestSplitMethodRejectsUnstableValues(t *testing.T) {
+func TestSplitMethodRejectsMalformedValues(t *testing.T) {
 	tests := []struct {
 		full    string
 		service string
@@ -128,7 +128,7 @@ func TestSplitMethodRejectsUnstableValues(t *testing.T) {
 	}
 }
 
-func labelsWithout(labels map[string]string, key string) map[string]string {
+func withoutLabel(labels map[string]string, key string) map[string]string {
 	result := make(map[string]string, len(labels)-1)
 	for name, value := range labels {
 		if name != key {
