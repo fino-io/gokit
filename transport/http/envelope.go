@@ -8,13 +8,13 @@ import (
 func IsEnvelopeStyle(ctx context.Context, style string) bool {
 	enveloped := false
 	style = strings.ToLower(style)
-	if style == EnvelopStyle || style == underScoreEnvelopStyle {
+	if style == EnvelopeStyle || style == underScoreEnvelopeStyle {
 		enveloped = true
 	}
-	if val, ok := ctx.Value(EnvelopStyle).(bool); ok {
+	if val, ok := ctx.Value(EnvelopeStyle).(bool); ok {
 		enveloped = val
 	}
-	if val, ok := ctx.Value(underScoreEnvelopStyle).(bool); ok {
+	if val, ok := ctx.Value(underScoreEnvelopeStyle).(bool); ok {
 		enveloped = val
 	}
 	return enveloped

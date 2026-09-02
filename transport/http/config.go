@@ -8,11 +8,11 @@ import (
 )
 
 const (
-	EnvelopStyle = "envelope"
-	AIPStyle     = "aip"
+	EnvelopeStyle = "envelope"
+	AIPStyle      = "aip"
 
-	underScoreEnvelopStyle = "_envelope"
-	underScoreAIPStyle     = "_aip"
+	underScoreEnvelopeStyle = "_envelope"
+	underScoreAIPStyle      = "_aip"
 )
 
 type Config struct {
@@ -29,7 +29,7 @@ func (c *Config) GetStyle() string {
 	return ""
 }
 
-func (c *Config) GetEnvelop() *EnvelopeConfig {
+func (c *Config) GetEnvelope() *EnvelopeConfig {
 	if c != nil {
 		return &c.Envelope
 	}
