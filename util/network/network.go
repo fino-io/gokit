@@ -26,16 +26,6 @@ func GetHost() string {
 	return "127.0.0.1"
 }
 
-func GetHostname() string {
-	ret, _ := os.Hostname()
-	if len(ret) == 0 {
-		ret = "unknown"
-	}
-	ret = strings.ReplaceAll(ret, "-", "_")
-	ret = strings.ReplaceAll(ret, ".", "_")
-	return ret
-}
-
 func getIpFromEnv() string {
 	return os.Getenv("SERVICE_HOST")
 }
