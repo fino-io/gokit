@@ -9,6 +9,7 @@ require (
 	github.com/fino-io/finokit v0.0.0-20260901015841-ec46c480110e
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
+	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/json-iterator/go v1.1.12
 	github.com/pkg/errors v0.9.1
@@ -47,7 +48,6 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect

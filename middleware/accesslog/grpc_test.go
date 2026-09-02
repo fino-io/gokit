@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -41,6 +42,29 @@ func TestUnaryServerInterceptorLogsStructuredServerError(t *testing.T) {
 	assertField(t, entry.Fields, "request_id", "req-grpc")
 	if span := trace.SpanContextFromContext(logger.logContext(t)); span.TraceID() != testTraceID {
 		t.Fatalf("trace ID = %s, want %s", span.TraceID(), testTraceID)
+	}
+}
+
+func TestUnaryServerInterceptorGeneratesRequestIDWhenMissing(t *testing.T) {
+	t.Parallel()
+
+	logger := &recordingLogger{}
+	interceptor := unaryServerInterceptor(Config{SampleEvery: 1}, logger.Log)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
+
+	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/user.v1.User/GetUser"}, func(context.Context, any) (any, error) {
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := logger.single(t)
+	requestID, ok := entry.Fields["request_id"].(string)
+	if !ok {
+		t.Fatalf("request ID field = %#v, want string", entry.Fields["request_id"])
+	}
+	if _, err := uuid.Parse(requestID); err != nil {
+		t.Fatalf("request ID = %q, want UUID: %v", requestID, err)
 	}
 }
 

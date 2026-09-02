@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -40,6 +41,34 @@ func TestHTTPMiddlewareLogsStructuredServerError(t *testing.T) {
 	span := trace.SpanContextFromContext(logger.logContext(t))
 	if span.TraceID() != testTraceID || span.SpanID() != testSpanID {
 		t.Fatalf("trace context = %s/%s, want %s/%s", span.TraceID(), span.SpanID(), testTraceID, testSpanID)
+	}
+}
+
+func TestHTTPMiddlewareGeneratesRequestIDWhenMissing(t *testing.T) {
+	t.Parallel()
+
+	logger := &recordingLogger{}
+	var handlerRequestID string
+	handler := httpMiddleware(Config{SampleEvery: 1}, logger.Log)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handlerRequestID = r.Header.Get(requestIDHeader)
+		if _, err := uuid.Parse(handlerRequestID); err != nil {
+			t.Fatalf("request ID = %q, want UUID: %v", handlerRequestID, err)
+		}
+	}))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodGet, "/users", nil)
+	handler.ServeHTTP(recorder, request)
+
+	responseRequestID := recorder.Header().Get(requestIDHeader)
+	if _, err := uuid.Parse(responseRequestID); err != nil {
+		t.Fatalf("response request ID = %q, want UUID: %v", responseRequestID, err)
+	}
+	if responseRequestID != handlerRequestID {
+		t.Fatalf("response request ID = %q, handler request ID = %q", responseRequestID, handlerRequestID)
+	}
+	if entry := logger.single(t); entry.Fields["request_id"] != responseRequestID {
+		t.Fatalf("logged request ID = %#v, response request ID = %q", entry.Fields["request_id"], responseRequestID)
 	}
 }
 

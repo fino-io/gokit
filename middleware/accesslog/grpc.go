@@ -7,12 +7,11 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
-// UnaryServerInterceptor logs completed unary gRPC server calls.
+// UnaryServerInterceptor assigns a request ID and logs completed unary gRPC server calls.
 func UnaryServerInterceptor(cfg Config) grpc.UnaryServerInterceptor {
 	return unaryServerInterceptor(cfg, defaultLog)
 }
@@ -20,6 +19,9 @@ func UnaryServerInterceptor(cfg Config) grpc.UnaryServerInterceptor {
 func unaryServerInterceptor(cfg Config, log logFunc) grpc.UnaryServerInterceptor {
 	policy := newPolicy(cfg, cfg.GRPC.SkipMethods)
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (response any, err error) {
+		requestID := ensureRequestID(requestIDFromIncomingMetadata(ctx))
+		ctx = withRequestID(ctx, requestID)
+
 		started := time.Now()
 		defer func() {
 			recovered := recover()
@@ -27,7 +29,7 @@ func unaryServerInterceptor(cfg Config, log logFunc) grpc.UnaryServerInterceptor
 			if recovered != nil {
 				code = codes.Internal
 			}
-			logGRPC(ctx, info.FullMethod, code, time.Since(started), policy, log)
+			logGRPC(ctx, info.FullMethod, requestID, code, time.Since(started), policy, log)
 			if recovered != nil {
 				panic(recovered)
 			}
@@ -36,8 +38,7 @@ func unaryServerInterceptor(cfg Config, log logFunc) grpc.UnaryServerInterceptor
 	}
 }
 
-func logGRPC(ctx context.Context, method string, code codes.Code, duration time.Duration, policy *policy, log logFunc) {
-	requestID := requestIDFromMetadata(ctx)
+func logGRPC(ctx context.Context, method, requestID string, code codes.Code, duration time.Duration, policy *policy, log logFunc) {
 	if !policy.shouldLog(method, requestID, duration, importantGRPCCode(code)) {
 		return
 	}
@@ -50,18 +51,6 @@ func logGRPC(ctx context.Context, method string, code codes.Code, duration time.
 		"request_id", requestID,
 	}
 	log(ctx, grpcLevel(code), "grpc access", fields...)
-}
-
-func requestIDFromMetadata(ctx context.Context) string {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return ""
-	}
-	values := md.Get("x-request-id")
-	if len(values) == 0 {
-		return ""
-	}
-	return values[0]
 }
 
 func grpcRemoteIP(ctx context.Context) string {

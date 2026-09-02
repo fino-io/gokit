@@ -7,7 +7,7 @@ import (
 	"github.com/felixge/httpsnoop"
 )
 
-// HTTPMiddleware logs completed HTTP server requests.
+// HTTPMiddleware assigns a request ID and logs completed HTTP server requests.
 func HTTPMiddleware(cfg Config) func(http.Handler) http.Handler {
 	return httpMiddleware(cfg, defaultLog)
 }
@@ -19,6 +19,11 @@ func httpMiddleware(cfg Config, log logFunc) func(http.Handler) http.Handler {
 			next = http.NotFoundHandler()
 		}
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestID := ensureRequestID(r.Header.Get(requestIDHeader))
+			r.Header.Set(requestIDHeader, requestID)
+			w.Header().Set(requestIDHeader, requestID)
+			r = r.WithContext(withRequestID(r.Context(), requestID))
+
 			started := time.Now()
 			metrics := httpsnoop.Metrics{Code: http.StatusOK}
 			defer func() {
@@ -26,7 +31,7 @@ func httpMiddleware(cfg Config, log logFunc) func(http.Handler) http.Handler {
 				if recovered != nil {
 					metrics.Code = http.StatusInternalServerError
 				}
-				logHTTP(r, metrics, time.Since(started), policy, log)
+				logHTTP(r, requestID, metrics, time.Since(started), policy, log)
 				if recovered != nil {
 					panic(recovered)
 				}
@@ -38,8 +43,7 @@ func httpMiddleware(cfg Config, log logFunc) func(http.Handler) http.Handler {
 	}
 }
 
-func logHTTP(r *http.Request, metrics httpsnoop.Metrics, duration time.Duration, policy *policy, log logFunc) {
-	requestID := r.Header.Get("X-Request-ID")
+func logHTTP(r *http.Request, requestID string, metrics httpsnoop.Metrics, duration time.Duration, policy *policy, log logFunc) {
 	if !policy.shouldLog(r.URL.Path, requestID, duration, importantHTTPStatus(metrics.Code)) {
 		return
 	}
