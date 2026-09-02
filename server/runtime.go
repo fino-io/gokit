@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	TransportDEBUG = "DEBUG"
-	TransportHTTP  = "HTTP"
-	TransportGRPC  = "GRPC"
+	transportDebug = "DEBUG"
+	transportHTTP  = "HTTP"
+	transportGRPC  = "GRPC"
 
-	DefaultReadHeaderTimeout = 5 * time.Second
+	defaultReadHeaderTimeout = 5 * time.Second
 	DefaultShutdownTimeout   = 10 * time.Second
 )
 
@@ -35,28 +35,28 @@ func NewHTTPServer(addr string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:              addr,
 		Handler:           handler,
-		ReadHeaderTimeout: DefaultReadHeaderTimeout,
+		ReadHeaderTimeout: defaultReadHeaderTimeout,
 	}
 }
 
 func (servers *TransportServers) Listen(debugAddr, httpAddr, grpcAddr string) error {
 	var err error
-	if servers.DebugListener, err = Listen(TransportDEBUG, debugAddr); err != nil {
+	if servers.DebugListener, err = listen(transportDebug, debugAddr); err != nil {
 		return err
 	}
-	if servers.HTTPListener, err = Listen(TransportHTTP, httpAddr); err != nil {
+	if servers.HTTPListener, err = listen(transportHTTP, httpAddr); err != nil {
 		return err
 	}
-	if servers.GRPCListener, err = Listen(TransportGRPC, grpcAddr); err != nil {
+	if servers.GRPCListener, err = listen(transportGRPC, grpcAddr); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (servers *TransportServers) Serve(errc chan<- error) {
-	go ServeHTTP(errc, TransportDEBUG, servers.DebugServer, servers.DebugListener)
-	go ServeHTTP(errc, TransportHTTP, servers.HTTPServer, servers.HTTPListener)
-	go ServeGRPC(errc, TransportGRPC, servers.GRPCServer, servers.GRPCListener)
+	go serveHTTP(errc, transportDebug, servers.DebugServer, servers.DebugListener)
+	go serveHTTP(errc, transportHTTP, servers.HTTPServer, servers.HTTPListener)
+	go serveGRPC(errc, transportGRPC, servers.GRPCServer, servers.GRPCListener)
 }
 
 func (servers *TransportServers) HTTPAddr() string {
@@ -91,12 +91,12 @@ func (servers *TransportServers) Shutdown() error {
 	var errs []error
 	if servers.DebugServer != nil {
 		if err := servers.DebugServer.Shutdown(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown %s server: %w", TransportDEBUG, err))
+			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportDebug, err))
 		}
 	}
 	if servers.HTTPServer != nil {
 		if err := servers.HTTPServer.Shutdown(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown %s server: %w", TransportHTTP, err))
+			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportHTTP, err))
 		}
 	}
 	if servers.GRPCServer != nil {
@@ -108,7 +108,7 @@ func (servers *TransportServers) Shutdown() error {
 	return errors.Join(errs...)
 }
 
-func Listen(transport, addr string) (net.Listener, error) {
+func listen(transport, addr string) (net.Listener, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("listen %s server at %q: %w", transport, addr, err)
@@ -116,7 +116,7 @@ func Listen(transport, addr string) (net.Listener, error) {
 	return ln, nil
 }
 
-func ServeHTTP(errc chan<- error, transport string, server *http.Server, listener net.Listener) {
+func serveHTTP(errc chan<- error, transport string, server *http.Server, listener net.Listener) {
 	logs.Infow("begin server", "transport", transport, "address", listenerAddr(listener))
 
 	if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -124,7 +124,7 @@ func ServeHTTP(errc chan<- error, transport string, server *http.Server, listene
 	}
 }
 
-func ServeGRPC(errc chan<- error, transport string, server *grpc.Server, listener net.Listener) {
+func serveGRPC(errc chan<- error, transport string, server *grpc.Server, listener net.Listener) {
 	logs.Infow("begin server", "transport", transport, "address", listenerAddr(listener))
 
 	if err := server.Serve(listener); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
@@ -144,7 +144,7 @@ func shutdownGRPC(ctx context.Context, server *grpc.Server) error {
 		return nil
 	case <-ctx.Done():
 		server.Stop()
-		return fmt.Errorf("shutdown %s server: %w", TransportGRPC, ctx.Err())
+		return fmt.Errorf("shutdown %s server: %w", transportGRPC, ctx.Err())
 	}
 }
 
