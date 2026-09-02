@@ -1,4 +1,4 @@
-package kit
+package sd
 
 import (
 	"context"
@@ -8,15 +8,15 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
-type kitLogger struct {
+type logAdapter struct {
 	logs.Logger
 }
 
-func Logger() log.Logger {
-	return kitLogger{Logger: logs.DefaultLogger()}
+func newLogger() log.Logger {
+	return logAdapter{Logger: logs.DefaultLogger()}
 }
 
-func (l kitLogger) Log(kvs ...interface{}) error {
+func (l logAdapter) Log(kvs ...interface{}) error {
 	if len(kvs) == 0 {
 		return nil
 	}

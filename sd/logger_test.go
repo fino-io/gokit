@@ -1,4 +1,4 @@
-package kit
+package sd
 
 import (
 	"context"
@@ -24,7 +24,7 @@ func (l *captureLogger) Log(_ context.Context, entry logs.Entry) {
 	l.entry = entry
 }
 
-func Test_kitLogger_Log(t *testing.T) {
+func TestLogAdapter(t *testing.T) {
 	testErr := errors.New("boom")
 
 	tests := []struct {
@@ -88,9 +88,9 @@ func Test_kitLogger_Log(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			logger := &captureLogger{}
-			l := kitLogger{Logger: logger}
+			adapter := logAdapter{Logger: logger}
 
-			err := l.Log(tt.kvs...)
+			err := adapter.Log(tt.kvs...)
 			assert.NoError(t, err)
 			tt.assert(t, logger.entry)
 		})

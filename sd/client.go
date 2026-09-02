@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-kit/kit/log"
 	kitsd "github.com/go-kit/kit/sd"
 
 	"github.com/fino-io/gokit/sd/direct"
@@ -36,7 +35,7 @@ var (
 	errEtcdURLRequired = errors.New("sd: etcd url is required")
 )
 
-func New(cfg *Config, logger log.Logger) (*Client, error) {
+func New(cfg *Config) (*Client, error) {
 	if cfg == nil {
 		return nil, errNilConfig
 	}
@@ -52,7 +51,7 @@ func New(cfg *Config, logger log.Logger) (*Client, error) {
 		if len(urls) == 0 {
 			return nil, errEtcdURLRequired
 		}
-		client, err := etcdv3.New(urls, cfg.EtcdV3, logger)
+		client, err := etcdv3.New(urls, cfg.EtcdV3, newLogger())
 		if err != nil {
 			return nil, err
 		}

@@ -13,7 +13,7 @@ func TestNewDirectDoesNotRequireTopLevelURL(t *testing.T) {
 		Direct: map[string]*direct.Config{
 			"users": {Urls: []string{" http://127.0.0.1:8080 "}},
 		},
-	}, nil)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,7 +23,7 @@ func TestNewDirectDoesNotRequireTopLevelURL(t *testing.T) {
 }
 
 func TestNewEtcdRequiresURL(t *testing.T) {
-	_, err := New(&Config{Mode: EtcdMode}, nil)
+	_, err := New(&Config{Mode: EtcdMode})
 	if !errors.Is(err, errEtcdURLRequired) {
 		t.Fatalf("expected %v, got %v", errEtcdURLRequired, err)
 	}
