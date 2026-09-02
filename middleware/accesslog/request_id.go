@@ -15,6 +15,8 @@ const (
 	maxRequestIDLength   = 128
 )
 
+type requestIDContextKey struct{}
+
 func ensureRequestID(value string) string {
 	value = strings.TrimSpace(value)
 	if validRequestID(value) {
@@ -25,7 +27,19 @@ func ensureRequestID(value string) string {
 }
 
 func withRequestID(ctx context.Context, requestID string) context.Context {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx = context.WithValue(ctx, requestIDContextKey{}, requestID)
 	return logs.WithFields(ctx, logs.Field{Key: "request_id", Value: requestID})
+}
+
+func requestIDFromContext(ctx context.Context) string {
+	if ctx == nil {
+		return ""
+	}
+	requestID, _ := ctx.Value(requestIDContextKey{}).(string)
+	return requestID
 }
 
 func requestIDFromIncomingMetadata(ctx context.Context) string {

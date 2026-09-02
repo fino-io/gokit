@@ -15,6 +15,42 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestUnaryClientInterceptorPropagatesRequestID(t *testing.T) {
+	t.Parallel()
+
+	ctx := withRequestID(context.Background(), "req-client")
+	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("x-session-key", "session"))
+	called := false
+
+	err := UnaryClientInterceptor()(
+		ctx,
+		"/user.v1.User/GetUser",
+		nil,
+		nil,
+		nil,
+		func(ctx context.Context, _ string, _, _ any, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
+			called = true
+			outgoing, ok := metadata.FromOutgoingContext(ctx)
+			if !ok {
+				t.Fatal("expected outgoing metadata")
+			}
+			if got := outgoing.Get(requestIDMetadataKey); len(got) != 1 || got[0] != "req-client" {
+				t.Fatalf("request ID metadata = %v, want [req-client]", got)
+			}
+			if got := outgoing.Get("x-session-key"); len(got) != 1 || got[0] != "session" {
+				t.Fatalf("session metadata = %v, want [session]", got)
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !called {
+		t.Fatal("expected interceptor to invoke the RPC")
+	}
+}
+
 func TestUnaryServerInterceptorLogsStructuredServerError(t *testing.T) {
 	t.Parallel()
 

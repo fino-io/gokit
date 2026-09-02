@@ -18,8 +18,8 @@ func TestWithClientObservabilityAddsTransparentUnaryInterceptors(t *testing.T) {
 		metrics.Disabled(),
 	)(&options)
 
-	if len(options.unary) != 2 {
-		t.Fatalf("unary interceptor count = %d, want 2", len(options.unary))
+	if len(options.unary) != 3 {
+		t.Fatalf("unary interceptor count = %d, want 3", len(options.unary))
 	}
 
 	for _, interceptor := range options.unary {

@@ -7,9 +7,25 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
+
+// UnaryClientInterceptor propagates the request ID to outgoing unary gRPC calls.
+func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		requestID := requestIDFromContext(ctx)
+		if requestID == "" {
+			return invoker(ctx, method, req, reply, cc, opts...)
+		}
+
+		md, _ := metadata.FromOutgoingContext(ctx)
+		md = md.Copy()
+		md.Set(requestIDMetadataKey, requestID)
+		return invoker(metadata.NewOutgoingContext(ctx, md), method, req, reply, cc, opts...)
+	}
+}
 
 // UnaryServerInterceptor assigns a request ID and logs completed unary gRPC server calls.
 func UnaryServerInterceptor(cfg Config) grpc.UnaryServerInterceptor {
