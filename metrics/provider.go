@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sync"
 
-	metricmw "github.com/fino-io/gokit/middleware/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -16,11 +15,11 @@ type Instrumentation struct {
 	enabled     bool
 	namespace   string
 	registry    *prometheus.Registry
-	http        *metricmw.HTTPServer
-	grpc        *metricmw.GRPCServer
+	http        *HTTPServer
+	grpc        *GRPCServer
 	mu          sync.Mutex
-	httpClients map[string]*metricmw.HTTPClient
-	grpcClients map[string]*metricmw.GRPCClient
+	httpClients map[string]*HTTPClient
+	grpcClients map[string]*GRPCClient
 }
 
 func Disabled() *Instrumentation {
@@ -71,8 +70,8 @@ func newInstrumentationWithRegistry(
 		enabled:     enabled,
 		namespace:   normalizeNamespace(namespace),
 		registry:    registry,
-		httpClients: make(map[string]*metricmw.HTTPClient),
-		grpcClients: make(map[string]*metricmw.GRPCClient),
+		httpClients: make(map[string]*HTTPClient),
+		grpcClients: make(map[string]*GRPCClient),
 	}
 }
 
@@ -83,13 +82,13 @@ func (m *Instrumentation) Handler() http.Handler {
 	return promhttp.HandlerFor(m.registry, promhttp.HandlerOpts{})
 }
 
-func (m *Instrumentation) HTTPMiddleware(resolve metricmw.RouteResolver) func(http.Handler) http.Handler {
+func (m *Instrumentation) HTTPMiddleware(resolve RouteResolver) func(http.Handler) http.Handler {
 	if m == nil || !m.enabled {
 		return func(next http.Handler) http.Handler { return next }
 	}
 	m.mu.Lock()
 	if m.http == nil {
-		m.http = metricmw.NewHTTPServer(m.registry, m.namespace)
+		m.http = NewHTTPServer(m.registry, m.namespace)
 	}
 	server := m.http
 	m.mu.Unlock()
@@ -104,7 +103,7 @@ func (m *Instrumentation) GRPCUnaryInterceptor() grpc.UnaryServerInterceptor {
 	}
 	m.mu.Lock()
 	if m.grpc == nil {
-		m.grpc = metricmw.NewGRPCServer(m.registry, m.namespace)
+		m.grpc = NewGRPCServer(m.registry, m.namespace)
 	}
 	server := m.grpc
 	m.mu.Unlock()
@@ -122,7 +121,7 @@ func (m *Instrumentation) HTTPTransport(name, target string, next http.RoundTrip
 	key := name + "\x00" + target
 	client := m.httpClients[key]
 	if client == nil {
-		client = metricmw.NewHTTPClient(m.registry, m.namespace, name, target)
+		client = NewHTTPClient(m.registry, m.namespace, name, target)
 		m.httpClients[key] = client
 	}
 	m.mu.Unlock()
@@ -146,7 +145,7 @@ func (m *Instrumentation) GRPCUnaryClientInterceptor(name, target string) grpc.U
 	key := name + "\x00" + target
 	client := m.grpcClients[key]
 	if client == nil {
-		client = metricmw.NewGRPCClient(m.registry, m.namespace, name, target)
+		client = NewGRPCClient(m.registry, m.namespace, name, target)
 		m.grpcClients[key] = client
 	}
 	m.mu.Unlock()
