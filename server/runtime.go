@@ -22,16 +22,17 @@ const (
 )
 
 type TransportServers struct {
-	DebugServer     *http.Server
-	HTTPServer      *http.Server
-	GRPCServer      *grpc.Server
-	DebugListener   net.Listener
-	HTTPListener    net.Listener
-	GRPCListener    net.Listener
-	ShutdownTimeout time.Duration
+	debugServer   *http.Server
+	httpServer    *http.Server
+	grpcServer    *grpc.Server
+	debugListener net.Listener
+	httpListener  net.Listener
+	grpcListener  net.Listener
+	grpcAddr      string
+	errc          chan error
 }
 
-func NewHTTPServer(addr string, handler http.Handler) *http.Server {
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:              addr,
 		Handler:           handler,
@@ -39,39 +40,73 @@ func NewHTTPServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
-func (servers *TransportServers) Listen(debugAddr, httpAddr, grpcAddr string) error {
+func NewTransportServers(cfg Config, debugHandler, httpHandler http.Handler, grpcServer *grpc.Server) *TransportServers {
+	return &TransportServers{
+		debugServer: newHTTPServer(cfg.DebugAddr, debugHandler),
+		httpServer:  newHTTPServer(cfg.HttpAddr, httpHandler),
+		grpcServer:  grpcServer,
+		grpcAddr:    cfg.GrpcAddr,
+	}
+}
+
+func (servers *TransportServers) Start() error {
+	if err := servers.listen(); err != nil {
+		return err
+	}
+
+	servers.errc = make(chan error, 3)
+	servers.serve()
+	return nil
+}
+
+func (servers *TransportServers) listen() error {
 	var err error
-	if servers.DebugListener, err = listen(transportDebug, debugAddr); err != nil {
+	if servers.debugListener, err = listen(transportDebug, servers.debugServer.Addr); err != nil {
 		return err
 	}
-	if servers.HTTPListener, err = listen(transportHTTP, httpAddr); err != nil {
+	if servers.httpListener, err = listen(transportHTTP, servers.httpServer.Addr); err != nil {
+		servers.closeListeners()
 		return err
 	}
-	if servers.GRPCListener, err = listen(transportGRPC, grpcAddr); err != nil {
+	if servers.grpcListener, err = listen(transportGRPC, servers.grpcAddr); err != nil {
+		servers.closeListeners()
 		return err
 	}
 	return nil
 }
 
-func (servers *TransportServers) Serve(errc chan<- error) {
-	go serveHTTP(errc, transportDebug, servers.DebugServer, servers.DebugListener)
-	go serveHTTP(errc, transportHTTP, servers.HTTPServer, servers.HTTPListener)
-	go serveGRPC(errc, transportGRPC, servers.GRPCServer, servers.GRPCListener)
+func (servers *TransportServers) serve() {
+	go serveHTTP(servers.errc, transportDebug, servers.debugServer, servers.debugListener)
+	go serveHTTP(servers.errc, transportHTTP, servers.httpServer, servers.httpListener)
+	go serveGRPC(servers.errc, transportGRPC, servers.grpcServer, servers.grpcListener)
+}
+
+func (servers *TransportServers) Wait(ctx context.Context) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-servers.errc:
+		return err
+	}
 }
 
 func (servers *TransportServers) HTTPAddr() string {
-	return listenerAddr(servers.HTTPListener)
+	return listenerAddr(servers.httpListener)
 }
 
 func (servers *TransportServers) GRPCAddr() string {
-	return listenerAddr(servers.GRPCListener)
+	return listenerAddr(servers.grpcListener)
 }
 
-func (servers *TransportServers) CloseListeners() {
+func (servers *TransportServers) closeListeners() {
 	for _, listener := range []net.Listener{
-		servers.DebugListener,
-		servers.HTTPListener,
-		servers.GRPCListener,
+		servers.debugListener,
+		servers.httpListener,
+		servers.grpcListener,
 	} {
 		if listener != nil {
 			_ = listener.Close()
@@ -80,27 +115,22 @@ func (servers *TransportServers) CloseListeners() {
 }
 
 func (servers *TransportServers) Shutdown() error {
-	timeout := servers.ShutdownTimeout
-	if timeout <= 0 {
-		timeout = DefaultShutdownTimeout
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 	defer cancel()
 
 	var errs []error
-	if servers.DebugServer != nil {
-		if err := servers.DebugServer.Shutdown(ctx); err != nil {
+	if servers.debugServer != nil {
+		if err := servers.debugServer.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportDebug, err))
 		}
 	}
-	if servers.HTTPServer != nil {
-		if err := servers.HTTPServer.Shutdown(ctx); err != nil {
+	if servers.httpServer != nil {
+		if err := servers.httpServer.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportHTTP, err))
 		}
 	}
-	if servers.GRPCServer != nil {
-		if err := shutdownGRPC(ctx, servers.GRPCServer); err != nil {
+	if servers.grpcServer != nil {
+		if err := shutdownGRPC(ctx, servers.grpcServer); err != nil {
 			errs = append(errs, err)
 		}
 	}

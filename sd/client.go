@@ -3,12 +3,14 @@ package sd
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 
 	kitsd "github.com/go-kit/kit/sd"
 
 	"github.com/fino-io/gokit/sd/direct"
 	"github.com/fino-io/gokit/sd/etcdv3"
+	"github.com/fino-io/gokit/util/host"
 )
 
 type Registrar interface {
@@ -23,6 +25,7 @@ type Discovery interface {
 type Client struct {
 	Registrar Registrar
 	Discovery Discovery
+	transport string
 }
 
 const (
@@ -55,12 +58,56 @@ func New(cfg *Config) (*Client, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &Client{Registrar: client, Discovery: client}, nil
+		return &Client{
+			Registrar: client,
+			Discovery: client,
+			transport: strings.ToLower(strings.TrimSpace(cfg.Transport)),
+		}, nil
 	case DirectMode:
 		return &Client{Discovery: direct.New(cfg.Direct)}, nil
 	default:
 		return nil, fmt.Errorf("sd: unsupported mode %q", cfg.Mode)
 	}
+}
+
+func (c *Client) RegisterService(service, httpAddr, grpcAddr string) error {
+	if c == nil || c.Registrar == nil {
+		return nil
+	}
+
+	addr := grpcAddr
+	if c.transport == "http" {
+		addr = httpAddr
+	}
+
+	port, err := portFromAddress(addr)
+	if err != nil {
+		return err
+	}
+
+	instance := net.JoinHostPort(host.Address(), port)
+	if err := c.Registrar.Register(instance, service); err != nil {
+		return fmt.Errorf("sd: register service %q at %q: %w", service, instance, err)
+	}
+	return nil
+}
+
+func (c *Client) Deregister() error {
+	if c == nil || c.Registrar == nil {
+		return nil
+	}
+	return c.Registrar.Deregister()
+}
+
+func portFromAddress(addr string) (string, error) {
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return "", fmt.Errorf("sd: invalid server address %q: %w", addr, err)
+	}
+	if port == "" {
+		return "", fmt.Errorf("sd: invalid server address %q: empty port", addr)
+	}
+	return port, nil
 }
 
 func inferMode(cfg *Config) string {
