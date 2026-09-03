@@ -3,6 +3,7 @@ package ratelimit
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -45,6 +46,15 @@ type LocalKeyedRateLimiter struct {
 
 // NewLocalKeyedRateLimiter creates a bounded, process-local limiter.
 func NewLocalKeyedRateLimiter(every time.Duration, burst, maxKeys int, ttl time.Duration) (*LocalKeyedRateLimiter, error) {
+	if every <= 0 {
+		return nil, fmt.Errorf("every must be positive")
+	}
+	if burst <= 0 {
+		return nil, fmt.Errorf("burst must be positive")
+	}
+	if maxKeys <= 0 {
+		return nil, fmt.Errorf("maxKeys must be positive")
+	}
 	limiters, err := lru.New[string, *localRateLimiterEntry](maxKeys)
 	if err != nil {
 		return nil, err
