@@ -1,6 +1,7 @@
 package ratelimit
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -30,28 +31,44 @@ func TestLocalKeyedRateLimiterUsesIndependentBuckets(t *testing.T) {
 	limiter, err := NewLocalKeyedRateLimiter(time.Hour, 1, 10, time.Minute)
 	require.NoError(t, err)
 
-	require.True(t, limiter.Allow("user:1"))
-	require.False(t, limiter.Allow("user:1"))
-	require.True(t, limiter.Allow("user:2"))
+	allowed, err := limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	allowed, err = limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.False(t, allowed)
+	allowed, err = limiter.Allow(context.Background(), "user:2")
+	require.NoError(t, err)
+	require.True(t, allowed)
 }
 
 func TestLocalKeyedRateLimiterRecreatesExpiredBucket(t *testing.T) {
 	limiter, err := NewLocalKeyedRateLimiter(time.Hour, 1, 10, time.Minute)
 	require.NoError(t, err)
-	require.True(t, limiter.Allow("user:1"))
+	allowed, err := limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
 
 	entry, ok := limiter.limiters.Peek("user:1")
 	require.True(t, ok)
 	entry.lastSeen = time.Now().Add(-2 * time.Minute)
-	require.True(t, limiter.Allow("user:1"))
+	allowed, err = limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
 }
 
 func TestLocalKeyedRateLimiterEvictsLeastRecentlyUsedBucket(t *testing.T) {
 	limiter, err := NewLocalKeyedRateLimiter(time.Hour, 1, 1, time.Minute)
 	require.NoError(t, err)
 
-	require.True(t, limiter.Allow("user:1"))
-	require.True(t, limiter.Allow("user:2"))
-	require.True(t, limiter.Allow("user:1"))
+	allowed, err := limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	allowed, err = limiter.Allow(context.Background(), "user:2")
+	require.NoError(t, err)
+	require.True(t, allowed)
+	allowed, err = limiter.Allow(context.Background(), "user:1")
+	require.NoError(t, err)
+	require.True(t, allowed)
 	require.Equal(t, 1, limiter.limiters.Len())
 }

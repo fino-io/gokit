@@ -1,4 +1,4 @@
-// Package ratelimit provides endpoint and process-local rate limiters.
+// Package ratelimit provides keyed rate limiters.
 package ratelimit
 
 import (
@@ -7,26 +7,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fino-io/core/go/fino/core"
-	"github.com/go-kit/kit/endpoint"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"golang.org/x/time/rate"
 )
 
-func NewTokenBucketLimitMW(bkt *rate.Limiter) endpoint.Middleware {
-	return func(next endpoint.Endpoint) endpoint.Endpoint {
-		return func(ctx context.Context, request interface{}) (response interface{}, err error) {
-			if !bkt.Allow() {
-				return nil, core.NewResourceExhaustedError("Rate limit exceed!")
-			}
-			return next(ctx, request)
-		}
-	}
-}
-
-func EveryRateLimiter(interval time.Duration, b int) endpoint.Middleware {
-	limiter := rate.NewLimiter(rate.Every(interval), b)
-	return NewTokenBucketLimitMW(limiter)
+// KeyedLimiter accepts or rejects a request for a key.
+//
+// Implementations may use local memory or a shared backend. Errors indicate
+// that the limit could not be evaluated and must be handled by the caller.
+type KeyedLimiter interface {
+	Allow(ctx context.Context, key string) (bool, error)
 }
 
 type localRateLimiterEntry struct {
@@ -43,6 +33,8 @@ type LocalKeyedRateLimiter struct {
 	burst    int
 	ttl      time.Duration
 }
+
+var _ KeyedLimiter = (*LocalKeyedRateLimiter)(nil)
 
 // NewLocalKeyedRateLimiter creates a bounded, process-local limiter.
 func NewLocalKeyedRateLimiter(every time.Duration, burst, maxKeys int, ttl time.Duration) (*LocalKeyedRateLimiter, error) {
@@ -68,7 +60,7 @@ func NewLocalKeyedRateLimiter(every time.Duration, burst, maxKeys int, ttl time.
 }
 
 // Allow reports whether the key has a token available.
-func (l *LocalKeyedRateLimiter) Allow(key string) bool {
+func (l *LocalKeyedRateLimiter) Allow(_ context.Context, key string) (bool, error) {
 	now := time.Now()
 	l.mu.Lock()
 	l.cleanupExpired(now)
@@ -82,7 +74,7 @@ func (l *LocalKeyedRateLimiter) Allow(key string) bool {
 	entry.lastSeen = now
 	l.mu.Unlock()
 
-	return entry.limiter.Allow()
+	return entry.limiter.Allow(), nil
 }
 
 func (l *LocalKeyedRateLimiter) cleanupExpired(now time.Time) {
