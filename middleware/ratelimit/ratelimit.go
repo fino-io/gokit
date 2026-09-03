@@ -1,4 +1,5 @@
-package middleware
+// Package ratelimit provides endpoint and process-local rate limiters.
+package ratelimit
 
 import (
 	"context"
