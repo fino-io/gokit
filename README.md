@@ -9,7 +9,7 @@
 - **服务发现**：直连和 etcd（`sd`）。
 - **可观测性**：Prometheus 指标、OpenTelemetry tracing、日志和访问日志（`metrics`、`tracing`、`middleware/accesslog`）。
 - **通用中间件**：参数校验、日志、限流、国际化、上下文缓存和 session 认证（`middleware`）。
-- **通用工具**：带 HMAC 签名的服务端 session、分页游标和服务地址工具（`session`、`pagination`、`util/host`）。
+- **通用工具**：带 HMAC 签名的服务端 session 和分页游标（`session`、`pagination`）。服务注册地址由 `sd` 内部处理。
 
 
 按需引入子包即可：

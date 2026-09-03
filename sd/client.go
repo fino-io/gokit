@@ -10,7 +10,6 @@ import (
 
 	"github.com/fino-io/gokit/sd/direct"
 	"github.com/fino-io/gokit/sd/etcdv3"
-	"github.com/fino-io/gokit/util/host"
 )
 
 type Registrar interface {
@@ -85,7 +84,7 @@ func (c *Client) RegisterService(service, httpAddr, grpcAddr string) error {
 		return err
 	}
 
-	instance := net.JoinHostPort(host.Address(), port)
+	instance := net.JoinHostPort(serviceHost(), port)
 	if err := c.Registrar.Register(instance, service); err != nil {
 		return fmt.Errorf("sd: register service %q at %q: %w", service, instance, err)
 	}

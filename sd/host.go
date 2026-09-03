@@ -1,4 +1,4 @@
-package host
+package sd
 
 import (
 	"net"
@@ -6,9 +6,8 @@ import (
 	"strings"
 )
 
-// Address returns the host that the service should advertise.
-func Address() string {
-	if address := configuredHost(); address != "" {
+func serviceHost() string {
+	if address := strings.TrimSpace(os.Getenv("SERVICE_HOST")); address != "" {
 		return address
 	}
 
@@ -21,10 +20,6 @@ func Address() string {
 	}
 
 	return "127.0.0.1"
-}
-
-func configuredHost() string {
-	return strings.TrimSpace(os.Getenv("SERVICE_HOST"))
 }
 
 func preferredIPv4(names ...string) string {
@@ -47,15 +42,10 @@ func preferredIPv4(names ...string) string {
 }
 
 func interfaceIPv4(iface net.Interface) string {
-	if iface.Flags&net.FlagUp == 0 {
+	if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 		return ""
 	}
 
-	if iface.Flags&net.FlagLoopback != 0 {
-		return ""
-	}
-
-	// ignore docker and warden bridge
 	if strings.HasPrefix(iface.Name, "docker") || strings.HasPrefix(iface.Name, "w-") {
 		return ""
 	}
@@ -77,12 +67,9 @@ func interfaceIPv4(iface net.Interface) string {
 		if ip == nil || ip.IsLoopback() {
 			continue
 		}
-
-		ip = ip.To4()
-		if ip == nil {
-			continue
+		if ip = ip.To4(); ip != nil {
+			return ip.String()
 		}
-		return ip.String()
 	}
 	return ""
 }

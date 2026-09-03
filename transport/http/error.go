@@ -2,10 +2,10 @@ package http
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/fino-io/core/go/fino/core"
-	pkgerrors "github.com/pkg/errors"
 )
 
 type codedError interface {
@@ -29,7 +29,7 @@ type Error struct {
 
 func WrapError(e error, code int, message string, headers ...string) *Error {
 	err := &Error{
-		error:      pkgerrors.Wrap(e, message),
+		error:      wrapError(e, message),
 		statusCode: code,
 		headers:    make(http.Header),
 	}
@@ -41,6 +41,13 @@ func WrapError(e error, code int, message string, headers ...string) *Error {
 		}
 	}
 	return err
+}
+
+func wrapError(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", message, err)
 }
 
 func CoreErrorFromError(err error) *core.Error {

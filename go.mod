@@ -1,18 +1,17 @@
 module github.com/fino-io/gokit
 
-go 1.25.12
+go 1.25.13
 
 require (
 	github.com/etherlabsio/healthcheck/v2 v2.0.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fino-io/core/go v0.0.0-20260901015255-1d46040b458f
-	github.com/fino-io/finokit v0.0.0-20260901015841-ec46c480110e
+	github.com/fino-io/finokit v0.0.0-20260902043825-e760a52dd615
 	github.com/go-kit/kit v0.13.0
 	github.com/go-playground/validator/v10 v10.28.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/json-iterator/go v1.1.12
-	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/client_model v0.6.2
 	github.com/realclientip/realclientip-go v1.0.0
