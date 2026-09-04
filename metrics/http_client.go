@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 type httpClient struct {
 	requests *prometheus.CounterVec
 	duration *prometheus.HistogramVec
-	inflight prometheus.Gauge
+	inflight *prometheus.GaugeVec
 }
 
 func newHTTPClient(registerer prometheus.Registerer, namespace, name, target string) *httpClient {
@@ -26,10 +27,10 @@ func newHTTPClient(registerer prometheus.Registerer, namespace, name, target str
 			Namespace: namespace, Name: "http_client_request_duration_seconds",
 			Help: "Outbound HTTP request duration.", Buckets: defaultBuckets, ConstLabels: constLabels,
 		}, []string{"method"}),
-		inflight: prometheus.NewGauge(prometheus.GaugeOpts{
+		inflight: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: namespace, Name: "http_client_requests_in_flight", Help: "Outbound HTTP requests in flight.",
 			ConstLabels: constLabels,
-		}),
+		}, []string{"method"}),
 	}
 	m.requests = registerOrReuse(registerer, m.requests)
 	m.duration = registerOrReuse(registerer, m.duration)
@@ -43,18 +44,37 @@ func (m *httpClient) transport(next http.RoundTripper) http.RoundTripper {
 	}
 	return roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		started := time.Now()
-		m.inflight.Inc()
-		defer m.inflight.Dec()
+		inflight := m.inflight.WithLabelValues(req.Method)
+		inflight.Inc()
+		defer inflight.Dec()
 
 		response, err := next.RoundTrip(req)
-		m.requests.WithLabelValues(
-			req.Method, httpResult(req.Context(), response, err),
-		).Inc()
-		m.duration.WithLabelValues(
-			req.Method,
-		).Observe(time.Since(started).Seconds())
+		m.requests.WithLabelValues(req.Method, httpResult(req.Context(), response, err)).Inc()
+		m.duration.WithLabelValues(req.Method).Observe(time.Since(started).Seconds())
 		return response, err
 	})
+}
+
+func httpResult(ctx context.Context, response *http.Response, err error) string {
+	if ctx != nil {
+		switch ctx.Err() {
+		case context.DeadlineExceeded:
+			return "timeout"
+		case context.Canceled:
+			return "canceled"
+		}
+	}
+	if err != nil || response == nil {
+		return "failure"
+	}
+	switch {
+	case response.StatusCode >= http.StatusInternalServerError:
+		return "server_error"
+	case response.StatusCode >= http.StatusBadRequest:
+		return "client_error"
+	default:
+		return "success"
+	}
 }
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)

@@ -44,8 +44,7 @@ func NewCursorCodec(key []byte) (*CursorCodec, error) {
 	return &CursorCodec{gcm: gcm}, nil
 }
 
-// NewCursorCodecFromBase64 decodes a Base64-encoded AES-256 key.
-func NewCursorCodecFromBase64(encodedKey string) (*CursorCodec, error) {
+func newCursorCodecFromBase64(encodedKey string) (*CursorCodec, error) {
 	key, err := base64.StdEncoding.DecodeString(encodedKey)
 	if err != nil {
 		key, err = base64.RawStdEncoding.DecodeString(encodedKey)
@@ -112,9 +111,7 @@ func (c *CursorCodec) DecodeOffset(token, binding string) (int, error) {
 	return decoded.Offset, nil
 }
 
-// Binding produces a stable opaque binding for a list request's non-pagination
-// parameters. It is used to reject a page token reused with a different query.
-func Binding(namespace string, value any) (string, error) {
+func binding(namespace string, value any) (string, error) {
 	payload, err := jsonCodec.Marshal([]any{namespace, value})
 	if err != nil {
 		return "", fmt.Errorf("marshal page token binding: %w", err)

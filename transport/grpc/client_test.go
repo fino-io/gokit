@@ -52,18 +52,6 @@ func TestNewClientRequiresTransportCredentials(t *testing.T) {
 	}
 }
 
-func TestNewClientAppliesDialOptions(t *testing.T) {
-	conn, err := NewClient(
-		"user.v1.UserService",
-		WithInsecure(),
-		WithDialOptions(stdgrpc.WithDefaultServiceConfig("{")),
-	)
-	if err == nil {
-		_ = conn.Close()
-		t.Fatal("expected invalid dial option service config error")
-	}
-}
-
 func TestNewClientAcceptsExplicitInsecureTransport(t *testing.T) {
 	conn, err := NewClient("user.v1.UserService", WithInsecure())
 	if err != nil {

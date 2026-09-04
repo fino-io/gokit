@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fino-io/finokit/config"
+	finoconfig "github.com/fino-io/finokit/config"
 	"github.com/fino-io/finokit/config/source/memory"
 )
 
 func TestLoadConfigReadsTransportAccessLog(t *testing.T) {
-	err := config.InitDefault(
-		config.WithWatcherDisabled(),
-		config.WithSource(memory.NewSource(memory.WithJSON([]byte(`{
+	err := finoconfig.InitDefault(
+		finoconfig.WithWatcherDisabled(),
+		finoconfig.WithSource(memory.NewSource(memory.WithJSON([]byte(`{
 			"transport": {
 				"accessLog": {
 					"slowThreshold": "750ms",
@@ -26,7 +26,7 @@ func TestLoadConfigReadsTransportAccessLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := LoadConfig()
+	cfg := loadConfig()
 	if cfg.SlowThreshold != 750*time.Millisecond {
 		t.Fatalf("slow threshold = %v, want 750ms", cfg.SlowThreshold)
 	}

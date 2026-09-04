@@ -7,7 +7,7 @@ func TestCursorCodecRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	binding, err := Binding("users", []int64{1, 2})
+	binding, err := binding("users", []int64{1, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestCursorCodecDecodeOffsetAcceptsEmptyToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	binding, err := Binding("users", []int64{1, 2})
+	binding, err := binding("users", []int64{1, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestNormalizePageSize(t *testing.T) {
 		{input: MaxPageSize + 1, want: MaxPageSize, valid: true},
 		{input: -1, valid: false},
 	} {
-		got, err := NormalizePageSize(test.input)
+		got, err := normalizePageSize(test.input)
 		if (err == nil) != test.valid || got != test.want {
 			t.Fatalf("NormalizePageSize(%d) = (%d, %v)", test.input, got, err)
 		}
@@ -76,7 +76,7 @@ func TestResolve(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	binding, err := Binding("users", []int64{1, 2})
+	binding, err := binding("users", []int64{1, 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,22 +102,22 @@ func TestPageImplementsPaginator(t *testing.T) {
 	}
 }
 
-func TestNewCursorCodecFromBase64(t *testing.T) {
-	codec, err := NewCursorCodecFromBase64("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+func TestCursorCodecFromBase64(t *testing.T) {
+	codec, err := newCursorCodecFromBase64("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 	if err != nil || codec == nil {
-		t.Fatalf("NewCursorCodecFromBase64() = (%v, %v)", codec, err)
+		t.Fatalf("newCursorCodecFromBase64() = (%v, %v)", codec, err)
 	}
-	if _, err := NewCursorCodecFromBase64("invalid"); err == nil {
-		t.Fatal("NewCursorCodecFromBase64() error = nil, want error")
+	if _, err := newCursorCodecFromBase64("invalid"); err == nil {
+		t.Fatal("newCursorCodecFromBase64() error = nil, want error")
 	}
 }
 
-func TestNewWithConfig(t *testing.T) {
-	codec, err := NewWithConfig(&Config{EncodedKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"})
+func TestConfiguredCursorCodec(t *testing.T) {
+	codec, err := newWithConfig(&config{EncodedKey: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"})
 	if err != nil || codec == nil {
-		t.Fatalf("NewWithConfig() = (%v, %v)", codec, err)
+		t.Fatalf("newWithConfig() = (%v, %v)", codec, err)
 	}
-	if _, err := NewWithConfig(nil); err == nil {
-		t.Fatal("NewWithConfig(nil) error = nil, want error")
+	if _, err := newWithConfig(nil); err == nil {
+		t.Fatal("newWithConfig(nil) error = nil, want error")
 	}
 }

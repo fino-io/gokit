@@ -12,7 +12,7 @@ type policy struct {
 	counter       atomic.Uint64
 }
 
-func newPolicy(cfg Config, skip []string) *policy {
+func newPolicy(cfg config, skip []string) *policy {
 	paths := make(map[string]struct{}, len(skip))
 	for _, path := range skip {
 		if path != "" {

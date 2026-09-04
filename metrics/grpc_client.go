@@ -52,8 +52,9 @@ func (m *grpcClient) unaryInterceptor() grpc.UnaryClientInterceptor {
 	) error {
 		service, methodName := splitMethod(method)
 		started := time.Now()
-		m.inflight.WithLabelValues(service, methodName).Inc()
-		defer m.inflight.WithLabelValues(service, methodName).Dec()
+		inflight := m.inflight.WithLabelValues(service, methodName)
+		inflight.Inc()
+		defer inflight.Dec()
 
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		m.requests.WithLabelValues(service, methodName, grpcCode(err).String()).Inc()

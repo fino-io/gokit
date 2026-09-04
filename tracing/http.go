@@ -36,13 +36,6 @@ func httpAttributes(req *http.Request) []attribute.KeyValue {
 	return append(attrs, attribute.String("http.scheme", httpScheme(req)))
 }
 
-func InjectHTTPHeader(ctx context.Context, header http.Header) {
-	if header == nil {
-		return
-	}
-	httpPropagator.Inject(ctx, propagation.HeaderCarrier(header))
-}
-
 func httpScheme(req *http.Request) string {
 	if req.URL != nil && req.URL.Scheme != "" {
 		return req.URL.Scheme

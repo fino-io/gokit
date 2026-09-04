@@ -28,11 +28,11 @@ func UnaryClientInterceptor() grpc.UnaryClientInterceptor {
 }
 
 // UnaryServerInterceptor assigns a request ID and logs completed unary gRPC server calls.
-func UnaryServerInterceptor(cfg Config) grpc.UnaryServerInterceptor {
-	return unaryServerInterceptor(cfg, defaultLog)
+func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
+	return unaryServerInterceptor(loadConfig(), defaultLog)
 }
 
-func unaryServerInterceptor(cfg Config, log logFunc) grpc.UnaryServerInterceptor {
+func unaryServerInterceptor(cfg config, log logFunc) grpc.UnaryServerInterceptor {
 	policy := newPolicy(cfg, cfg.GRPC.SkipMethods)
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (response any, err error) {
 		requestID := ensureRequestID(requestIDFromIncomingMetadata(ctx))

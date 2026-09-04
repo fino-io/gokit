@@ -15,7 +15,7 @@ func TestHTTPMiddlewareLogsStructuredServerError(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	middleware := httpMiddleware(Config{SampleEvery: 0}, logger.Log)
+	middleware := httpMiddleware(config{SampleEvery: 0}, logger.Log)
 	handler := middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		_, _ = w.Write([]byte("down"))
@@ -49,7 +49,7 @@ func TestHTTPMiddlewareGeneratesRequestIDWhenMissing(t *testing.T) {
 
 	logger := &recordingLogger{}
 	var handlerRequestID string
-	handler := httpMiddleware(Config{SampleEvery: 1}, logger.Log)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := httpMiddleware(config{SampleEvery: 1}, logger.Log)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		handlerRequestID = r.Header.Get(requestIDHeader)
 		if _, err := uuid.Parse(handlerRequestID); err != nil {
 			t.Fatalf("request ID = %q, want UUID: %v", handlerRequestID, err)
@@ -76,9 +76,9 @@ func TestHTTPMiddlewareSkipsSuccessfulConfiguredPath(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	handler := httpMiddleware(Config{
+	handler := httpMiddleware(config{
 		SampleEvery: 1,
-		HTTP:        HTTPConfig{SkipPaths: []string{"/healthz"}},
+		HTTP:        httpConfig{SkipPaths: []string{"/healthz"}},
 	}, logger.Log)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 
 	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/healthz", nil))
@@ -91,7 +91,7 @@ func TestHTTPMiddlewareLogsSlowSuccessfulRequest(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	handler := httpMiddleware(Config{
+	handler := httpMiddleware(config{
 		SlowThreshold: time.Nanosecond,
 		SampleEvery:   0,
 	}, logger.Log)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
@@ -106,7 +106,7 @@ func TestHTTPMiddlewarePreservesFlusher(t *testing.T) {
 	t.Parallel()
 
 	writer := &flushingRecorder{ResponseRecorder: httptest.NewRecorder()}
-	handler := HTTPMiddleware(Config{SampleEvery: 0})(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	handler := HTTPMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		if _, ok := w.(http.Flusher); !ok {
 			t.Fatal("wrapped response writer does not preserve http.Flusher")
 		}
@@ -118,7 +118,7 @@ func TestHTTPMiddlewareLogsAndPropagatesPanic(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	handler := httpMiddleware(Config{SampleEvery: 0}, logger.Log)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+	handler := httpMiddleware(config{SampleEvery: 0}, logger.Log)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
 		panic("boom")
 	}))
 

@@ -2,6 +2,7 @@ package tracing
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"time"
 
@@ -14,18 +15,17 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-func NewTracer(ctx context.Context, serviceName, otlpEndpoint string) (trace.Tracer, ShutdownFunc, error) {
-	return NewTracerWithConfig(ctx, serviceName, &Config{
-		Enable:      true,
-		Endpoint:    otlpEndpoint,
-		SampleRatio: 1,
-	})
-}
+func newTracer(ctx context.Context, serviceName string, cfg *config) (trace.Tracer, ShutdownFunc, error) {
+	if cfg == nil {
+		return noopTracer(serviceName), noopShutdown, errors.New("tracing config is nil")
+	}
+	if !cfg.Enable {
+		return noopTracer(serviceName), noopShutdown, nil
+	}
 
-func NewTracerWithConfig(ctx context.Context, serviceName string, cfg *Config) (trace.Tracer, ShutdownFunc, error) {
-	provider, err := NewTraceProviderWithConfig(ctx, serviceName, cfg)
+	provider, err := newTraceProvider(ctx, serviceName, cfg)
 	if err != nil {
-		return noopTracer(serviceName), NoopShutdown, err
+		return noopTracer(serviceName), noopShutdown, err
 	}
 
 	otel.SetTracerProvider(provider)
@@ -33,21 +33,13 @@ func NewTracerWithConfig(ctx context.Context, serviceName string, cfg *Config) (
 	return tracer, provider.Shutdown, nil
 }
 
-func NewTraceProvider(ctx context.Context, serviceName, otlpEndpoint string) (*traceSDK.TracerProvider, error) {
-	return NewTraceProviderWithConfig(ctx, serviceName, &Config{
-		Enable:      true,
-		Endpoint:    otlpEndpoint,
-		SampleRatio: 1,
-	})
-}
-
-func NewTraceProviderWithConfig(ctx context.Context, serviceName string, cfg *Config) (*traceSDK.TracerProvider, error) {
+func newTraceProvider(ctx context.Context, serviceName string, cfg *config) (*traceSDK.TracerProvider, error) {
 	if cfg == nil {
-		cfg = &Config{SampleRatio: 1}
+		cfg = &config{SampleRatio: 1}
 	}
 	endpoint := strings.TrimSpace(cfg.Endpoint)
 	if endpoint == "" {
-		endpoint = DefaultOTLPEndpoint
+		endpoint = defaultOTLPEndpoint
 	}
 
 	options := []otlptracehttp.Option{otlptracehttp.WithInsecure()}
@@ -76,7 +68,7 @@ func NewTraceProviderWithConfig(ctx context.Context, serviceName string, cfg *Co
 	return traceProvider, nil
 }
 
-func sampleRatio(cfg *Config) float64 {
+func sampleRatio(cfg *config) float64 {
 	if cfg == nil || cfg.SampleRatio == 0 {
 		return 1
 	}
@@ -93,7 +85,7 @@ func samplerFromRatio(ratio float64) traceSDK.Sampler {
 	return traceSDK.ParentBased(traceSDK.TraceIDRatioBased(ratio))
 }
 
-func newResource(ctx context.Context, serviceName string, cfg *Config) (*resource.Resource, error) {
+func newResource(ctx context.Context, serviceName string, cfg *config) (*resource.Resource, error) {
 	attrs := []attribute.KeyValue{
 		semconv.ServiceName(serviceName),
 	}

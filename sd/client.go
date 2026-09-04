@@ -28,8 +28,8 @@ type Client struct {
 }
 
 const (
-	EtcdMode   = "etcd"
-	DirectMode = "direct"
+	etcdMode   = "etcd"
+	directMode = "direct"
 )
 
 var (
@@ -37,7 +37,11 @@ var (
 	errEtcdURLRequired = errors.New("sd: etcd url is required")
 )
 
-func New(cfg *Config) (*Client, error) {
+func New() (*Client, error) {
+	return newClient(loadConfig())
+}
+
+func newClient(cfg *config) (*Client, error) {
 	if cfg == nil {
 		return nil, errNilConfig
 	}
@@ -48,7 +52,7 @@ func New(cfg *Config) (*Client, error) {
 	}
 
 	switch mode {
-	case EtcdMode:
+	case etcdMode:
 		urls := splitURLs(cfg.Url)
 		if len(urls) == 0 {
 			return nil, errEtcdURLRequired
@@ -62,7 +66,7 @@ func New(cfg *Config) (*Client, error) {
 			Discovery: client,
 			transport: strings.ToLower(strings.TrimSpace(cfg.Transport)),
 		}, nil
-	case DirectMode:
+	case directMode:
 		return &Client{Discovery: direct.New(cfg.Direct)}, nil
 	default:
 		return nil, fmt.Errorf("sd: unsupported mode %q", cfg.Mode)
@@ -109,12 +113,12 @@ func portFromAddress(addr string) (string, error) {
 	return port, nil
 }
 
-func inferMode(cfg *Config) string {
+func inferMode(cfg *config) string {
 	if len(cfg.Direct) > 0 {
-		return DirectMode
+		return directMode
 	}
 	if cfg.EtcdV3 != nil || cfg.Url != "" {
-		return EtcdMode
+		return etcdMode
 	}
 	return ""
 }

@@ -3,19 +3,19 @@ package pagination
 import (
 	"errors"
 
-	"github.com/fino-io/finokit/config"
+	finoconfig "github.com/fino-io/finokit/config"
 	"github.com/fino-io/finokit/logs"
 )
 
 var errNilConfig = errors.New("pagination config is nil")
 
-type Config struct {
+type config struct {
 	EncodedKey string `json:"encodedKey" yaml:"encodedKey"`
 }
 
-func NewConfig() *Config {
-	cfg := &Config{}
-	if err := config.ScanFrom(cfg, "pagination"); err != nil {
+func loadConfig() *config {
+	cfg := &config{}
+	if err := finoconfig.ScanFrom(cfg, "pagination"); err != nil {
 		logs.Errorw("failed to get the pagination config", "error", err)
 		return nil
 	}
@@ -23,12 +23,12 @@ func NewConfig() *Config {
 }
 
 func New() (*CursorCodec, error) {
-	return NewWithConfig(NewConfig())
+	return newWithConfig(loadConfig())
 }
 
-func NewWithConfig(cfg *Config) (*CursorCodec, error) {
+func newWithConfig(cfg *config) (*CursorCodec, error) {
 	if cfg == nil {
 		return nil, errNilConfig
 	}
-	return NewCursorCodecFromBase64(cfg.EncodedKey)
+	return newCursorCodecFromBase64(cfg.EncodedKey)
 }

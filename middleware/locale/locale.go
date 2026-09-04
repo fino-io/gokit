@@ -44,7 +44,7 @@ func NewLocaleMW(resolver Resolver) endpoint.Middleware {
 }
 
 func WithLocale(ctx context.Context, locale string) context.Context {
-	locale = Normalize(locale)
+	locale = normalize(locale)
 	if len(locale) == 0 {
 		return ctx
 	}
@@ -59,7 +59,7 @@ func LocaleFromContext(ctx context.Context) (string, bool) {
 	return locale, true
 }
 
-func Normalize(locale string) string {
+func normalize(locale string) string {
 	locale = strings.TrimSpace(locale)
 	if len(locale) == 0 {
 		return ""

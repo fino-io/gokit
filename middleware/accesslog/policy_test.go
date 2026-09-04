@@ -9,7 +9,7 @@ import (
 func TestPolicyAlwaysLogsImportantAndSlowEvents(t *testing.T) {
 	t.Parallel()
 
-	cfg := Config{
+	cfg := config{
 		SlowThreshold: time.Second,
 		SampleEvery:   0,
 	}
@@ -40,7 +40,7 @@ func TestPolicyAlwaysLogsImportantAndSlowEvents(t *testing.T) {
 func TestPolicyUsesStableRequestIDSampling(t *testing.T) {
 	t.Parallel()
 
-	p := newPolicy(Config{SampleEvery: 8}, nil)
+	p := newPolicy(config{SampleEvery: 8}, nil)
 	foundSampled := false
 	for i := 0; i < 100; i++ {
 		requestID := fmt.Sprintf("request-%d", i)
@@ -58,7 +58,7 @@ func TestPolicyUsesStableRequestIDSampling(t *testing.T) {
 func TestPolicyFallsBackToAtomicCounter(t *testing.T) {
 	t.Parallel()
 
-	p := newPolicy(Config{SampleEvery: 2}, nil)
+	p := newPolicy(config{SampleEvery: 2}, nil)
 	if p.shouldLog("", "", 0, false) {
 		t.Fatal("first event should not be sampled")
 	}

@@ -59,13 +59,6 @@ func newInstrumentation(enabled bool, namespace string) *Instrumentation {
 	return m
 }
 
-func NewWithRegistry(namespace string, registry *prometheus.Registry) *Instrumentation {
-	if registry == nil {
-		registry = prometheus.NewRegistry()
-	}
-	return newInstrumentationWithRegistry(true, namespace, registry)
-}
-
 func newInstrumentationWithRegistry(
 	enabled bool,
 	namespace string,

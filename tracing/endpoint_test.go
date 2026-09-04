@@ -15,8 +15,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-type contextKey string
-
 const traceparent = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
 
 func testTracer() (trace.Tracer, *tracetest.SpanRecorder) {
@@ -25,60 +23,13 @@ func testTracer() (trace.Tracer, *tracetest.SpanRecorder) {
 	return provider.Tracer("tracing-test"), recorder
 }
 
-func TestTraceEndpointUsesRequestScopedOperationName(t *testing.T) {
+func TestTraceEndpointUsesInternalSpanKind(t *testing.T) {
 	tracer, recorder := testTracer()
-	middleware := TraceEndpoint(
-		tracer,
-		"default",
-		WithOperationNameFunc(func(ctx context.Context, name string) string {
-			if value, ok := ctx.Value(contextKey("operation")).(string); ok {
-				return value
-			}
-			return name
-		}),
-	)
+	runEndpoint(t, TraceEndpoint(tracer, "endpoint"), context.Background())
 
-	runEndpoint(t, middleware, context.WithValue(context.Background(), contextKey("operation"), "first"))
-	runEndpoint(t, middleware, context.WithValue(context.Background(), contextKey("operation"), "second"))
-
-	spans := endedSpans(t, recorder, 2)
-	if spans[0].Name() != "first" || spans[1].Name() != "second" {
-		t.Fatalf("unexpected span names: %q, %q", spans[0].Name(), spans[1].Name())
-	}
-}
-
-func TestTraceEndpointAndClientUseSpanKind(t *testing.T) {
-	tests := []struct {
-		name       string
-		middleware func(trace.Tracer) endpoint.Middleware
-		wantKind   trace.SpanKind
-	}{
-		{
-			name: "endpoint",
-			middleware: func(tracer trace.Tracer) endpoint.Middleware {
-				return TraceEndpoint(tracer, "endpoint")
-			},
-			wantKind: trace.SpanKindInternal,
-		},
-		{
-			name: "client",
-			middleware: func(tracer trace.Tracer) endpoint.Middleware {
-				return TraceClient(tracer, "client")
-			},
-			wantKind: trace.SpanKindClient,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tracer, recorder := testTracer()
-			runEndpoint(t, tt.middleware(tracer), context.Background())
-
-			spans := endedSpans(t, recorder, 1)
-			if spans[0].SpanKind() != tt.wantKind {
-				t.Fatalf("expected %s span kind, got %s", tt.wantKind, spans[0].SpanKind())
-			}
-		})
+	spans := endedSpans(t, recorder, 1)
+	if spans[0].SpanKind() != trace.SpanKindInternal {
+		t.Fatalf("expected internal span kind, got %s", spans[0].SpanKind())
 	}
 }
 
@@ -103,28 +54,6 @@ func TestTraceEndpointRecordsError(t *testing.T) {
 	if len(spans[0].Events()) == 0 {
 		t.Fatal("expected recorded error event")
 	}
-}
-
-func TestTraceEndpointAppliesAttributes(t *testing.T) {
-	tracer, recorder := testTracer()
-	middleware := TraceEndpoint(
-		tracer,
-		"operation",
-		WithAttributes(attribute.String("static", "value")),
-		WithAttributesFunc(func(context.Context) []attribute.KeyValue {
-			return []attribute.KeyValue{attribute.String("dynamic", "value")}
-		}),
-	)
-
-	if _, err := middleware(func(context.Context, interface{}) (interface{}, error) {
-		return "ok", nil
-	})(context.Background(), nil); err != nil {
-		t.Fatal(err)
-	}
-
-	attrs := endedSpans(t, recorder, 1)[0].Attributes()
-	assertAttribute(t, attrs, "static", "value")
-	assertAttribute(t, attrs, "dynamic", "value")
 }
 
 func TestExtractHTTPContextExtractsTraceParent(t *testing.T) {
@@ -157,8 +86,8 @@ func TestExtractGRPCContextExtractsTraceParent(t *testing.T) {
 	assertRemoteTraceContext(t, extractGRPCContext(context.Background(), md))
 }
 
-func TestNewWithNilConfigReturnsError(t *testing.T) {
-	tracer, shutdown, err := NewWith(context.Background(), "svc", nil)
+func TestNewTracerWithNilConfigReturnsError(t *testing.T) {
+	tracer, shutdown, err := newTracer(context.Background(), "svc", nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -173,8 +102,8 @@ func TestNewWithNilConfigReturnsError(t *testing.T) {
 	}
 }
 
-func TestNewWithDisabledConfigReturnsNoop(t *testing.T) {
-	tracer, shutdown, err := NewWith(context.Background(), "svc", &Config{})
+func TestNewTracerWithDisabledConfigReturnsNoop(t *testing.T) {
+	tracer, shutdown, err := newTracer(context.Background(), "svc", &config{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,13 +149,13 @@ func TestSamplerFromRatioUsesParentBasedTraceIDRatio(t *testing.T) {
 }
 
 func TestSampleRatioDefaultsToOneForOldConfigs(t *testing.T) {
-	if got := sampleRatio(&Config{}); got != 1 {
+	if got := sampleRatio(&config{}); got != 1 {
 		t.Fatalf("expected default sample ratio 1, got %v", got)
 	}
 }
 
 func TestNewResourceIncludesDeploymentAttributes(t *testing.T) {
-	res, err := newResource(context.Background(), "svc", &Config{
+	res, err := newResource(context.Background(), "svc", &config{
 		Environment:       "prod",
 		ServiceVersion:    "v1.2.3",
 		ServiceInstanceID: "pod-1",

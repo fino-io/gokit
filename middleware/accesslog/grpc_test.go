@@ -55,7 +55,7 @@ func TestUnaryServerInterceptorLogsStructuredServerError(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	interceptor := unaryServerInterceptor(Config{SampleEvery: 0}, logger.Log)
+	interceptor := unaryServerInterceptor(config{SampleEvery: 0}, logger.Log)
 	ctx := metadata.NewIncomingContext(contextWithTrace(context.Background()), metadata.Pairs("x-request-id", "req-grpc"))
 	ctx = peer.NewContext(ctx, &peer.Peer{Addr: &net.TCPAddr{IP: net.ParseIP("203.0.113.11"), Port: 4321}})
 	wantErr := status.Error(codes.Unavailable, "unavailable")
@@ -85,7 +85,7 @@ func TestUnaryServerInterceptorGeneratesRequestIDWhenMissing(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	interceptor := unaryServerInterceptor(Config{SampleEvery: 1}, logger.Log)
+	interceptor := unaryServerInterceptor(config{SampleEvery: 1}, logger.Log)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
 
 	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/user.v1.User/GetUser"}, func(context.Context, any) (any, error) {
@@ -108,9 +108,9 @@ func TestUnaryServerInterceptorSkipsSuccessfulHealthMethod(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	interceptor := unaryServerInterceptor(Config{
+	interceptor := unaryServerInterceptor(config{
 		SampleEvery: 1,
-		GRPC:        GRPCConfig{SkipMethods: []string{"/grpc.health.v1.Health/Check"}},
+		GRPC:        grpcConfig{SkipMethods: []string{"/grpc.health.v1.Health/Check"}},
 	}, logger.Log)
 
 	_, err := interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/grpc.health.v1.Health/Check"}, func(context.Context, any) (any, error) {
@@ -128,7 +128,7 @@ func TestUnaryServerInterceptorLogsSlowSuccessfulCall(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	interceptor := unaryServerInterceptor(Config{SlowThreshold: time.Nanosecond}, logger.Log)
+	interceptor := unaryServerInterceptor(config{SlowThreshold: time.Nanosecond}, logger.Log)
 	_, err := interceptor(context.Background(), nil, &grpc.UnaryServerInfo{FullMethod: "/user.v1.User/ListUsers"}, func(context.Context, any) (any, error) {
 		return nil, nil
 	})
@@ -144,7 +144,7 @@ func TestUnaryServerInterceptorLogsAndPropagatesPanic(t *testing.T) {
 	t.Parallel()
 
 	logger := &recordingLogger{}
-	interceptor := unaryServerInterceptor(Config{SampleEvery: 0}, logger.Log)
+	interceptor := unaryServerInterceptor(config{SampleEvery: 0}, logger.Log)
 
 	defer func() {
 		if recovered := recover(); recovered != "boom" {

@@ -5,8 +5,7 @@ const (
 	MaxPageSize     = 1000
 )
 
-// NormalizePageSize applies the API defaults and limits for a list request.
-func NormalizePageSize(pageSize int) (int, error) {
+func normalizePageSize(pageSize int) (int, error) {
 	if pageSize < 0 {
 		return 0, ErrInvalidPageSize
 	}
@@ -24,7 +23,7 @@ func NormalizePageSize(pageSize int) (int, error) {
 // Resolve validates a list request and returns its cursor offset, normalized
 // page size, and binding for creating a subsequent page token.
 func Resolve(codec *CursorCodec, token string, pageSize int, namespace string, scope any) (int, int, string, error) {
-	binding, err := Binding(namespace, scope)
+	binding, err := binding(namespace, scope)
 	if err != nil {
 		return 0, 0, "", err
 	}
@@ -34,7 +33,7 @@ func Resolve(codec *CursorCodec, token string, pageSize int, namespace string, s
 		return 0, 0, "", err
 	}
 
-	size, err := NormalizePageSize(pageSize)
+	size, err := normalizePageSize(pageSize)
 	if err != nil {
 		return 0, 0, "", err
 	}

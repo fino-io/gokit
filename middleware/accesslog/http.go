@@ -8,11 +8,11 @@ import (
 )
 
 // HTTPMiddleware assigns a request ID and logs completed HTTP server requests.
-func HTTPMiddleware(cfg Config) func(http.Handler) http.Handler {
-	return httpMiddleware(cfg, defaultLog)
+func HTTPMiddleware() func(http.Handler) http.Handler {
+	return httpMiddleware(loadConfig(), defaultLog)
 }
 
-func httpMiddleware(cfg Config, log logFunc) func(http.Handler) http.Handler {
+func httpMiddleware(cfg config, log logFunc) func(http.Handler) http.Handler {
 	policy := newPolicy(cfg, cfg.HTTP.SkipPaths)
 	return func(next http.Handler) http.Handler {
 		if next == nil {

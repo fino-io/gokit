@@ -1,13 +1,11 @@
 package tracing
 
 import (
-	"strings"
-
-	"github.com/fino-io/finokit/config"
+	finoconfig "github.com/fino-io/finokit/config"
 	"github.com/fino-io/finokit/logs"
 )
 
-type Config struct {
+type config struct {
 	Enable            bool    `json:"enable" yaml:"enable" default:"false"`
 	Endpoint          string  `json:"endpoint" yaml:"endpoint" default:"localhost:4318"`
 	SampleRatio       float64 `json:"sampleRatio" yaml:"sampleRatio" default:"1"`
@@ -16,12 +14,12 @@ type Config struct {
 	ServiceInstanceID string  `json:"serviceInstanceID" yaml:"serviceInstanceID"`
 }
 
-const DefaultOTLPEndpoint = "localhost:4318"
+const defaultOTLPEndpoint = "localhost:4318"
 
-func NewConfig(path ...string) *Config {
-	cfg := &Config{}
-	if err := config.ScanFrom(&cfg, "tracing"); err != nil {
-		logs.Errorw("failed to get the tracing config from "+strings.Join(path, "."), "error", err)
+func loadConfig() *config {
+	cfg := &config{}
+	if err := finoconfig.ScanFrom(cfg, "tracing"); err != nil {
+		logs.Errorw("failed to get the tracing config", "error", err)
 		return nil
 	}
 	return cfg

@@ -26,16 +26,13 @@ type clientOptions struct {
 	credentials   credentials.TransportCredentials
 	instancer     kitsd.Instancer
 	unary         []stdgrpc.UnaryClientInterceptor
-	stream        []stdgrpc.StreamClientInterceptor
 	serviceConfig string
-	dialOptions   []stdgrpc.DialOption
 }
 
 // ClientOption configures a client connection.
 type ClientOption func(*clientOptions)
 
-// WithTransportCredentials configures transport security.
-func WithTransportCredentials(credentials credentials.TransportCredentials) ClientOption {
+func withTransportCredentials(credentials credentials.TransportCredentials) ClientOption {
 	return func(options *clientOptions) {
 		options.credentials = credentials
 	}
@@ -43,7 +40,7 @@ func WithTransportCredentials(credentials credentials.TransportCredentials) Clie
 
 // WithInsecure explicitly opts into plaintext transport.
 func WithInsecure() ClientOption {
-	return WithTransportCredentials(insecure.NewCredentials())
+	return withTransportCredentials(insecure.NewCredentials())
 }
 
 // WithInstancer uses a Go-kit Instancer as the connection's name resolver.
@@ -55,8 +52,7 @@ func WithInstancer(instancer kitsd.Instancer) ClientOption {
 	}
 }
 
-// WithUnaryInterceptors appends unary client interceptors in invocation order.
-func WithUnaryInterceptors(interceptors ...stdgrpc.UnaryClientInterceptor) ClientOption {
+func withUnaryInterceptors(interceptors ...stdgrpc.UnaryClientInterceptor) ClientOption {
 	return func(options *clientOptions) {
 		options.unary = append(options.unary, interceptors...)
 	}
@@ -65,18 +61,11 @@ func WithUnaryInterceptors(interceptors ...stdgrpc.UnaryClientInterceptor) Clien
 // WithClientObservability adds request ID propagation, tracing, and metrics to unary client calls.
 // caller identifies the calling service and target identifies the remote service.
 func WithClientObservability(caller, target string, tracer trace.Tracer, instrumentation *metrics.Instrumentation) ClientOption {
-	return WithUnaryInterceptors(
+	return withUnaryInterceptors(
 		accesslog.UnaryClientInterceptor(),
 		tracing.GRPCUnaryClientInterceptor(tracer),
 		instrumentation.GRPCUnaryClientInterceptor(caller, target),
 	)
-}
-
-// WithStreamInterceptors appends stream client interceptors in invocation order.
-func WithStreamInterceptors(interceptors ...stdgrpc.StreamClientInterceptor) ClientOption {
-	return func(options *clientOptions) {
-		options.stream = append(options.stream, interceptors...)
-	}
 }
 
 // WithDefaultServiceConfig replaces the complete default service config.
@@ -85,14 +74,6 @@ func WithStreamInterceptors(interceptors ...stdgrpc.StreamClientInterceptor) Cli
 func WithDefaultServiceConfig(serviceConfig string) ClientOption {
 	return func(options *clientOptions) {
 		options.serviceConfig = strings.TrimSpace(serviceConfig)
-	}
-}
-
-// WithDialOptions appends advanced native gRPC options. Use the dedicated
-// options above for transport credentials, discovery, and interceptors.
-func WithDialOptions(options ...stdgrpc.DialOption) ClientOption {
-	return func(config *clientOptions) {
-		config.dialOptions = append(config.dialOptions, options...)
 	}
 }
 
@@ -117,9 +98,6 @@ func NewClient(target string, options ...ClientOption) (*stdgrpc.ClientConn, err
 	if len(config.unary) > 0 {
 		dialOptions = append(dialOptions, stdgrpc.WithChainUnaryInterceptor(config.unary...))
 	}
-	if len(config.stream) > 0 {
-		dialOptions = append(dialOptions, stdgrpc.WithChainStreamInterceptor(config.stream...))
-	}
 	if config.instancer != nil {
 		builder := newInstancerBuilder(config.instancer)
 		dialOptions = append(dialOptions, stdgrpc.WithResolvers(builder))
@@ -131,7 +109,5 @@ func NewClient(target string, options ...ClientOption) (*stdgrpc.ClientConn, err
 	if config.serviceConfig != "" {
 		dialOptions = append(dialOptions, stdgrpc.WithDefaultServiceConfig(config.serviceConfig))
 	}
-	dialOptions = append(dialOptions, config.dialOptions...)
-
 	return stdgrpc.NewClient(target, dialOptions...)
 }

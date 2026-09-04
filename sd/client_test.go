@@ -25,8 +25,8 @@ func (registrar *recordingRegistrar) Deregister() error {
 }
 
 func TestNewDirectDoesNotRequireTopLevelURL(t *testing.T) {
-	client, err := New(&Config{
-		Mode: DirectMode,
+	client, err := newClient(&config{
+		Mode: directMode,
 		Direct: map[string]*direct.Config{
 			"users": {Urls: []string{" http://127.0.0.1:8080 "}},
 		},
@@ -40,7 +40,7 @@ func TestNewDirectDoesNotRequireTopLevelURL(t *testing.T) {
 }
 
 func TestNewEtcdRequiresURL(t *testing.T) {
-	_, err := New(&Config{Mode: EtcdMode})
+	_, err := newClient(&config{Mode: etcdMode})
 	if !errors.Is(err, errEtcdURLRequired) {
 		t.Fatalf("expected %v, got %v", errEtcdURLRequired, err)
 	}
