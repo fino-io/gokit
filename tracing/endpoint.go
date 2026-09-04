@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-kit/kit/endpoint"
@@ -26,14 +25,13 @@ func TraceEndpoint(tracer trace.Tracer, operationName string) endpoint.Middlewar
 
 			defer func() {
 				if err != nil {
-					span.RecordError(err)
-					span.SetStatus(codes.Error, err.Error())
+					recordError(span, err)
 					var lbErr lb.RetryError
 					if errors.As(err, &lbErr) {
 						// handle errors originating from lb.Retry
 						for idx, rawErr := range lbErr.RawErrors {
 							if rawErr != nil {
-								span.SetAttributes(attribute.String("gokit.retry.error."+strconv.Itoa(idx+1), rawErr.Error()))
+								span.SetAttributes(attribute.String("gokit.retry.error."+strconv.Itoa(idx+1), telemetryString(rawErr.Error())))
 							}
 						}
 
@@ -47,12 +45,8 @@ func TraceEndpoint(tracer trace.Tracer, operationName string) endpoint.Middlewar
 				// test for business error
 				if res, ok := response.(endpoint.Failer); ok && res.Failed() != nil {
 					businessErr := res.Failed()
-					span.RecordError(businessErr)
-					span.SetAttributes(attribute.String("gokit.business.error", businessErr.Error()))
-
-					// treating business error as real error in span.
-					span.SetStatus(codes.Error, businessErr.Error())
-
+					recordError(span, businessErr)
+					span.SetAttributes(attribute.String("gokit.business.error", telemetryString(businessErr.Error())))
 					return
 				}
 			}()

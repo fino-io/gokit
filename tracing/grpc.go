@@ -3,7 +3,6 @@ package tracing
 import (
 	"context"
 
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -47,8 +46,7 @@ func GRPCUnaryClientInterceptor(tracer trace.Tracer) grpc.UnaryClientInterceptor
 		ctx = metadata.NewOutgoingContext(ctx, md)
 
 		if err := invoker(ctx, method, req, reply, cc, opts...); err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+			recordError(span, err)
 			return err
 		}
 		return nil
