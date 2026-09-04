@@ -16,7 +16,7 @@ var json = `{
   "nextPageToken": "{\"page\": 2}"
 }`
 
-func TestEnvelopedResponseCodec_Decode(t *testing.T) {
+func TestEnvelopedResponseJSON_Decode(t *testing.T) {
 	resp := &EnvelopedResponse{}
 	err := jsoniter.UnmarshalFromString(json, resp)
 	assert.NoError(t, err)
@@ -27,7 +27,7 @@ func TestEnvelopedResponseCodec_Decode(t *testing.T) {
 	assert.Equal(t, "{\"page\": 2}", resp.NextPageToken)
 }
 
-func TestEnvelopedResponseCodec_Encode(t *testing.T) {
+func TestEnvelopedResponseJSON_Encode(t *testing.T) {
 	resp := &EnvelopedResponse{
 		Error:         core.NewErrorFrom(400, "Invalid Arguments"),
 		Data:          "This is data",

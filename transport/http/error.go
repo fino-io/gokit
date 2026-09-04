@@ -12,7 +12,6 @@ type codedError interface {
 	error
 	Code() int32
 	Message() string
-	Extra() map[string]string
 }
 
 type statusCoder interface {

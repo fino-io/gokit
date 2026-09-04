@@ -9,15 +9,15 @@ import (
 )
 
 func init() {
-	core.RegisterJSONTypeDecoder("http.EnvelopedResponse", &EnvelopedResponseCodec{})
-	core.RegisterJSONTypeEncoder("http.EnvelopedResponse", &EnvelopedResponseCodec{})
+	core.RegisterJSONTypeDecoder("http.EnvelopedResponse", &envelopedResponseCodec{})
+	core.RegisterJSONTypeEncoder("http.EnvelopedResponse", &envelopedResponseCodec{})
 }
 
-type EnvelopedResponseCodec struct{}
+type envelopedResponseCodec struct{}
 
 type BareEnvelopedResponse EnvelopedResponse
 
-func (codec *EnvelopedResponseCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
+func (codec *envelopedResponseCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.Iterator) {
 	resp := (*EnvelopedResponse)(ptr)
 	for filed := iter.ReadObject(); filed != ""; filed = iter.ReadObject() {
 		switch filed {
@@ -50,7 +50,7 @@ func (codec *EnvelopedResponseCodec) Decode(ptr unsafe.Pointer, iter *jsoniter.I
 	}
 }
 
-func (codec *EnvelopedResponseCodec) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
+func (codec *envelopedResponseCodec) Encode(ptr unsafe.Pointer, stream *jsoniter.Stream) {
 	resp := (*EnvelopedResponse)(ptr)
 	stream.WriteObjectStart()
 	first := true
@@ -99,7 +99,7 @@ func (codec *EnvelopedResponseCodec) Encode(ptr unsafe.Pointer, stream *jsoniter
 	stream.WriteObjectEnd()
 }
 
-func (codec *EnvelopedResponseCodec) IsEmpty(ptr unsafe.Pointer) bool {
+func (codec *envelopedResponseCodec) IsEmpty(ptr unsafe.Pointer) bool {
 	e := (*EnvelopedResponse)(ptr)
 	return e == nil
 }

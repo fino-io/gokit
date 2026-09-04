@@ -29,10 +29,6 @@ func (e testCodedError) Message() string {
 	return e.message
 }
 
-func (e testCodedError) Extra() map[string]string {
-	return nil
-}
-
 func (e testCodedError) Unwrap() error {
 	return e.cause
 }
