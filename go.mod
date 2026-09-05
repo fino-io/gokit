@@ -6,7 +6,7 @@ require (
 	github.com/etherlabsio/healthcheck/v2 v2.0.0
 	github.com/felixge/httpsnoop v1.0.4
 	github.com/fino-io/core/go v0.0.0-20260901015255-1d46040b458f
-	github.com/fino-io/finokit v0.0.0-20260904081844-204baa2e25ba
+	github.com/fino-io/finokit v0.0.0-20260905110439-fbc0edad58d9
 	github.com/go-kit/kit v0.13.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
