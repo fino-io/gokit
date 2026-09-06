@@ -7,7 +7,7 @@
 - **服务运行时**：进程生命周期、配置和服务启动辅助（`server`）。
 - **传输层**：HTTP 响应封装和错误处理；gRPC 客户端、服务发现解析器及错误映射（`transport/http`、`transport/grpc`）。
 - **服务发现**：直连和 etcd（`sd`）。
-- **可观测性**：Prometheus 指标、OpenTelemetry tracing、日志和访问日志（`metrics`、`tracing`、`middleware/accesslog`）。
+- **可观测性**：Prometheus 指标、OpenTelemetry tracing、日志、请求 ID 和访问日志（`metrics`、`tracing`、`middleware/requestid`、`middleware/accesslog`）。
 - **通用中间件**：参数校验、日志、限流、国际化、上下文缓存和 session 认证（`middleware`）。
 - **通用工具**：带 HMAC 签名的服务端 session 和分页游标（`session`、`pagination`）。服务注册地址由 `sd` 内部处理。
 

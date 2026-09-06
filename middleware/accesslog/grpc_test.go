@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fino-io/gokit/middleware/requestid"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
@@ -18,7 +19,7 @@ import (
 func TestUnaryClientInterceptorPropagatesRequestID(t *testing.T) {
 	t.Parallel()
 
-	ctx := withRequestID(context.Background(), "req-client")
+	ctx := requestid.WithContext(context.Background(), "req-client")
 	ctx = metadata.NewOutgoingContext(ctx, metadata.Pairs("x-session-key", "session"))
 	called := false
 
@@ -34,7 +35,7 @@ func TestUnaryClientInterceptorPropagatesRequestID(t *testing.T) {
 			if !ok {
 				t.Fatal("expected outgoing metadata")
 			}
-			if got := outgoing.Get(requestIDMetadataKey); len(got) != 1 || got[0] != "req-client" {
+			if got := outgoing.Get(requestid.MetadataKey); len(got) != 1 || got[0] != "req-client" {
 				t.Fatalf("request ID metadata = %v, want [req-client]", got)
 			}
 			if got := outgoing.Get("x-session-key"); len(got) != 1 || got[0] != "session" {

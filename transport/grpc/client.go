@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/fino-io/gokit/metrics"
-	"github.com/fino-io/gokit/middleware/accesslog"
+	"github.com/fino-io/gokit/middleware/requestid"
 	"github.com/fino-io/gokit/tracing"
 	kitsd "github.com/go-kit/kit/sd"
 	"go.opentelemetry.io/otel/trace"
@@ -62,7 +62,7 @@ func withUnaryInterceptors(interceptors ...stdgrpc.UnaryClientInterceptor) Clien
 // caller identifies the calling service and target identifies the remote service.
 func WithClientObservability(caller, target string, tracer trace.Tracer, instrumentation *metrics.Instrumentation) ClientOption {
 	return withUnaryInterceptors(
-		accesslog.UnaryClientInterceptor(),
+		requestid.UnaryClientInterceptor(),
 		tracing.GRPCUnaryClientInterceptor(tracer),
 		instrumentation.GRPCUnaryClientInterceptor(caller, target),
 	)

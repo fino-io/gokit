@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fino-io/gokit/middleware/requestid"
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -50,7 +51,7 @@ func TestHTTPMiddlewareGeneratesRequestIDWhenMissing(t *testing.T) {
 	logger := &recordingLogger{}
 	var handlerRequestID string
 	handler := httpMiddleware(config{SampleEvery: 1}, logger.Log)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handlerRequestID = r.Header.Get(requestIDHeader)
+		handlerRequestID = r.Header.Get(requestid.Header)
 		if _, err := uuid.Parse(handlerRequestID); err != nil {
 			t.Fatalf("request ID = %q, want UUID: %v", handlerRequestID, err)
 		}
@@ -60,7 +61,7 @@ func TestHTTPMiddlewareGeneratesRequestIDWhenMissing(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/users", nil)
 	handler.ServeHTTP(recorder, request)
 
-	responseRequestID := recorder.Header().Get(requestIDHeader)
+	responseRequestID := recorder.Header().Get(requestid.Header)
 	if _, err := uuid.Parse(responseRequestID); err != nil {
 		t.Fatalf("response request ID = %q, want UUID: %v", responseRequestID, err)
 	}

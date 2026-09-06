@@ -65,7 +65,7 @@ handler = tracing.HTTPServerMiddleware(tracer)(handler)
 
 grpc.NewServer(grpc.ChainUnaryInterceptor(
 	tracing.GRPCUnaryServerTracingInterceptor(tracer),
-	accesslog.UnaryServerInterceptor(accesslog.LoadConfig()),
+	accesslog.UnaryServerInterceptor(),
 ))
 ```
 

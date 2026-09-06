@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/felixge/httpsnoop"
+	"github.com/fino-io/gokit/middleware/requestid"
 )
 
 // HTTPMiddleware assigns a request ID and logs completed HTTP server requests.
@@ -18,12 +19,8 @@ func httpMiddleware(cfg config, log logFunc) func(http.Handler) http.Handler {
 		if next == nil {
 			next = http.NotFoundHandler()
 		}
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			requestID := ensureRequestID(r.Header.Get(requestIDHeader))
-			r.Header.Set(requestIDHeader, requestID)
-			w.Header().Set(requestIDHeader, requestID)
-			r = r.WithContext(withRequestID(r.Context(), requestID))
-
+		return requestid.HTTPMiddleware()(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requestID := requestid.FromContext(r.Context())
 			started := time.Now()
 			metrics := httpsnoop.Metrics{Code: http.StatusOK}
 			defer func() {
@@ -39,7 +36,7 @@ func httpMiddleware(cfg config, log logFunc) func(http.Handler) http.Handler {
 			metrics.CaptureMetrics(w, func(w http.ResponseWriter) {
 				next.ServeHTTP(w, r)
 			})
-		})
+		}))
 	}
 }
 
