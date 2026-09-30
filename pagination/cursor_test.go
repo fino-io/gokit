@@ -24,6 +24,48 @@ func TestCursorCodecRoundTrip(t *testing.T) {
 	}
 }
 
+func TestCursorCodecKeysetRoundTripAndResolve(t *testing.T) {
+	codec, err := NewCursorCodec(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	binding, err := binding("users", []int64{1, 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, err := codec.EncodeKeyset("user-9", binding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	position, size, gotBinding, err := ResolveKeyset(codec, token, 25, "users", []int64{1, 2})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if position != "user-9" || size != 25 || gotBinding != binding {
+		t.Fatalf("ResolveKeyset() = (%q, %d, %q), want (%q, 25, %q)", position, size, gotBinding, "user-9", binding)
+	}
+	if _, err := codec.DecodeOffset(token, binding); err != ErrInvalidPageToken {
+		t.Fatalf("DecodeOffset(keyset token) error = %v, want %v", err, ErrInvalidPageToken)
+	}
+	if _, _, _, err := ResolveKeyset(codec, token, 25, "users", []int64{1, 3}); err != ErrInvalidPageToken {
+		t.Fatalf("ResolveKeyset(different scope) error = %v, want %v", err, ErrInvalidPageToken)
+	}
+}
+
+func TestCursorCodecRejectsOffsetTokenAsKeyset(t *testing.T) {
+	codec, err := NewCursorCodec(make([]byte, 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	token, err := codec.EncodeOffset(12, "users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := codec.DecodeKeyset(token, "users"); err != ErrInvalidPageToken {
+		t.Fatalf("DecodeKeyset(offset token) error = %v, want %v", err, ErrInvalidPageToken)
+	}
+}
+
 func TestCursorCodecRejectsDifferentBinding(t *testing.T) {
 	codec, err := NewCursorCodec(make([]byte, 32))
 	if err != nil {

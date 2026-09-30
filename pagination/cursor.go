@@ -18,8 +18,9 @@ var ErrInvalidPageToken = errors.New("invalid page token")
 var jsonCodec = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type cursor struct {
-	Offset  int    `json:"offset"`
-	Binding string `json:"binding"`
+	Offset   int    `json:"offset"`
+	Position string `json:"position,omitempty"`
+	Binding  string `json:"binding"`
 }
 
 // CursorCodec creates opaque, URL-safe page tokens using AES-256-GCM.
@@ -105,10 +106,29 @@ func (c *CursorCodec) DecodeOffset(token, binding string) (int, error) {
 	}
 
 	decoded, err := c.decode(token, binding)
-	if err != nil {
-		return 0, err
+	if err != nil || decoded.Position != "" {
+		return 0, ErrInvalidPageToken
 	}
 	return decoded.Offset, nil
+}
+
+func (c *CursorCodec) EncodeKeyset(position, binding string) (string, error) {
+	if position == "" {
+		return "", ErrInvalidPageToken
+	}
+
+	return c.encode(cursor{Position: position, Binding: binding})
+}
+
+func (c *CursorCodec) DecodeKeyset(token, binding string) (string, error) {
+	if token == "" {
+		return "", nil
+	}
+	decoded, err := c.decode(token, binding)
+	if err != nil || decoded.Position == "" || decoded.Offset != 0 {
+		return "", ErrInvalidPageToken
+	}
+	return decoded.Position, nil
 }
 
 func binding(namespace string, value any) (string, error) {
