@@ -5,7 +5,7 @@ go 1.25.13
 require (
 	github.com/etherlabsio/healthcheck/v2 v2.0.0
 	github.com/felixge/httpsnoop v1.0.4
-	github.com/fino-io/core/go v0.0.0-20260901015255-1d46040b458f
+	github.com/fino-io/core/go v0.0.0-20261004042014-b1025cb169cf
 	github.com/fino-io/finokit v0.0.0-20260906092431-b646d24f667f
 	github.com/go-kit/kit v0.13.0
 	github.com/google/uuid v1.6.0

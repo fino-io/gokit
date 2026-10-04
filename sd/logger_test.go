@@ -3,6 +3,7 @@ package sd
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/fino-io/finokit/logs"
@@ -19,6 +20,12 @@ func (l *captureLogger) SetLevel(logs.Level) {}
 func (l *captureLogger) GetLevel() logs.Level { return logs.InfoLevel }
 
 func (l *captureLogger) With(...logs.Field) logs.Logger { return l }
+
+func (*captureLogger) LevelHandler() http.Handler { return nil }
+
+func (*captureLogger) Sync() error { return nil }
+
+func (*captureLogger) Close() error { return nil }
 
 func (l *captureLogger) Log(_ context.Context, entry logs.Entry) {
 	l.entry = entry

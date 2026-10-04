@@ -37,13 +37,13 @@ func TestResponseJsonWriter_WriteHttpResponse_UsesJSONiterForMessages(t *testing
 }
 
 func TestResponseJsonWriter_WriteHttpResponse_UsesRegisteredCodecInEnvelopedMessages(t *testing.T) {
-	timestamp := core.FromTime(time.Date(2026, 8, 24, 12, 34, 56, 0, time.UTC))
+	timestamp := core.FromTime(time.Date(2026, 8, 24, 20, 34, 56, 123456789, time.FixedZone("UTC+8", 8*60*60)))
 	body := responseBody(t, &EnvelopedResponse{
 		Error: core.NewErrorFrom(200, "OK"),
 		Data:  &timestampResponse{Timestamp: timestamp},
 	})
 
-	expected := `{"code":"200","message":"OK","data":{"timestamp":"` + timestamp.Format() + `"}}`
+	expected := `{"code":"200","message":"OK","data":{"timestamp":"2026-08-24T12:34:56.123456789Z"}}`
 	assert.JSONEq(t, expected, body)
 }
 

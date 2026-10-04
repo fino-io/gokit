@@ -28,7 +28,7 @@ func CodeFromCoreError(err error) (codes.Code, bool) {
 		return codes.ResourceExhausted, true
 	case core.IsCancelledError(err):
 		return codes.Canceled, true
-	case core.IsUnknownErrorError(err):
+	case core.IsUnknownError(err):
 		return codes.Unknown, true
 	case core.IsInternalError(err):
 		return codes.Internal, true
