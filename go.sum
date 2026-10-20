@@ -47,8 +47,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fino-io/core/go v0.0.0-20261004152146-cab0df6e5304 h1:PQ4DXrjvvJqxIalY2fqeyHEmJRxo5RTNbNXJofvqJGI=
 github.com/fino-io/core/go v0.0.0-20261004152146-cab0df6e5304/go.mod h1:r15EwdVxffdHUy3ZDwBmuvHKswhWOc5TKLr/ZhTwp5Q=
-github.com/fino-io/finokit v0.0.0-20261004152521-6f7b32f5f97b h1:AC/PQ15skf51VJEmfglwZNCgQ6F7m3EQtr4rSD/oryg=
-github.com/fino-io/finokit v0.0.0-20261004152521-6f7b32f5f97b/go.mod h1:sc6IjAYb9VV4+NuisiX4LjlhX+CnNpmscAu3Yx3WzSo=
+github.com/fino-io/finokit v0.0.0-20261020014009-02419e283a46 h1:rNzmIdlGbmNB34o+X5XMPR7A9hrLuHy6a8WSOr8ML8M=
+github.com/fino-io/finokit v0.0.0-20261020014009-02419e283a46/go.mod h1:qcjYBkjQJ80Psc0Xzs+gBC5JsOBiBZk+2nbAHzChEis=
 github.com/fsnotify/fsnotify v1.6.0 h1:n+5WquG0fcWoWp6xPWfHdbskMCQaFnG6PfBrh1Ky4HY=
 github.com/fsnotify/fsnotify v1.6.0/go.mod h1:sl3t1tCWJFWoRz9R8WJCbQihKKwmorjAbSClcnxKAGw=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=
