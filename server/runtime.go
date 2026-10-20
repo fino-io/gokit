@@ -144,7 +144,7 @@ func (servers *TransportServers) Shutdown() error {
 	}
 	if servers.grpcServer != nil {
 		if err := shutdownGRPC(ctx, servers.grpcServer); err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportGRPC, err))
 		}
 	}
 	if servers.debugServer != nil {
@@ -192,7 +192,7 @@ func shutdownGRPC(ctx context.Context, server *grpc.Server) error {
 		return nil
 	case <-ctx.Done():
 		server.Stop()
-		return fmt.Errorf("shutdown %s server: %w", transportGRPC, ctx.Err())
+		return ctx.Err()
 	}
 }
 
