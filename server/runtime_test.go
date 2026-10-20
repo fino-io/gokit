@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,19 +13,14 @@ import (
 	"google.golang.org/grpc"
 )
 
-func TestTransportServersStartWaitAndShutdown(t *testing.T) {
-	servers := NewTransportServers(
-		Config{
-			DebugAddr: "127.0.0.1:0",
-			HttpAddr:  "127.0.0.1:0",
-			GrpcAddr:  "127.0.0.1:0",
-		},
-		http.NewServeMux(),
-		http.NewServeMux(),
-		grpc.NewServer(),
+func TestStartTransportServersWaitAndShutdown(t *testing.T) {
+	servers, err := StartTransportServers(
+		"127.0.0.1:0", http.NewServeMux(),
+		"127.0.0.1:0", grpc.NewServer(),
+		"127.0.0.1:0", NewDebugHandler("127.0.0.1:0", http.NewServeMux()),
 	)
 
-	require.NoError(t, servers.Start())
+	require.NoError(t, err)
 	require.NotEmpty(t, servers.HTTPAddr())
 	require.NotEmpty(t, servers.GRPCAddr())
 
@@ -51,10 +47,24 @@ func TestNewDebugHandler(t *testing.T) {
 	debug := httptest.NewServer(handler)
 	t.Cleanup(debug.Close)
 
-	for _, path := range []string{"/livez", "/readyz", "/healthz", "/metrics", "/debug/pprof/"} {
+	for _, path := range []string{"/livez", "/readyz", "/healthz", "/metrics", "/debug/pprof/", "/log/level"} {
 		response, err := http.Get(debug.URL + path)
 		require.NoError(t, err, path)
 		require.Equal(t, http.StatusOK, response.StatusCode, path)
 		require.NoError(t, response.Body.Close(), path)
 	}
+}
+
+func TestStartTransportServersReturnsListenError(t *testing.T) {
+	occupied, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = occupied.Close() })
+
+	servers, err := StartTransportServers(
+		"127.0.0.1:0", http.NewServeMux(),
+		occupied.Addr().String(), grpc.NewServer(),
+		"127.0.0.1:0", http.NewServeMux(),
+	)
+	require.ErrorContains(t, err, "listen GRPC server")
+	require.Nil(t, servers)
 }

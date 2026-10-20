@@ -13,21 +13,21 @@ import (
 )
 
 const (
-	transportDebug = "DEBUG"
 	transportHTTP  = "HTTP"
 	transportGRPC  = "GRPC"
+	transportDebug = "DEBUG"
 
 	defaultReadHeaderTimeout = 5 * time.Second
 	DefaultShutdownTimeout   = 10 * time.Second
 )
 
 type TransportServers struct {
-	debugServer   *http.Server
 	httpServer    *http.Server
 	grpcServer    *grpc.Server
-	debugListener net.Listener
+	debugServer   *http.Server
 	httpListener  net.Listener
 	grpcListener  net.Listener
+	debugListener net.Listener
 	grpcAddr      string
 	errc          chan error
 }
@@ -40,13 +40,31 @@ func newHTTPServer(addr string, handler http.Handler) *http.Server {
 	}
 }
 
-func NewTransportServers(cfg Config, debugHandler, httpHandler http.Handler, grpcServer *grpc.Server) *TransportServers {
+func NewTransportServers(cfg Config, httpHandler http.Handler, grpcServer *grpc.Server, debugHandler http.Handler) *TransportServers {
 	return &TransportServers{
-		debugServer: newHTTPServer(cfg.DebugAddr, debugHandler),
 		httpServer:  newHTTPServer(cfg.HttpAddr, httpHandler),
 		grpcServer:  grpcServer,
+		debugServer: newHTTPServer(cfg.DebugAddr, debugHandler),
 		grpcAddr:    cfg.GrpcAddr,
 	}
+}
+
+// StartTransportServers starts each transport at its corresponding address.
+func StartTransportServers(
+	httpAddr string, httpHandler http.Handler,
+	grpcAddr string, grpcServer *grpc.Server,
+	debugAddr string, debugHandler http.Handler,
+) (*TransportServers, error) {
+	servers := &TransportServers{
+		httpServer:  newHTTPServer(httpAddr, httpHandler),
+		grpcServer:  grpcServer,
+		debugServer: newHTTPServer(debugAddr, debugHandler),
+		grpcAddr:    grpcAddr,
+	}
+	if err := servers.Start(); err != nil {
+		return nil, err
+	}
+	return servers, nil
 }
 
 func (servers *TransportServers) Start() error {
@@ -61,14 +79,14 @@ func (servers *TransportServers) Start() error {
 
 func (servers *TransportServers) listen() error {
 	var err error
-	if servers.debugListener, err = listen(transportDebug, servers.debugServer.Addr); err != nil {
-		return err
-	}
 	if servers.httpListener, err = listen(transportHTTP, servers.httpServer.Addr); err != nil {
-		servers.closeListeners()
 		return err
 	}
 	if servers.grpcListener, err = listen(transportGRPC, servers.grpcAddr); err != nil {
+		servers.closeListeners()
+		return err
+	}
+	if servers.debugListener, err = listen(transportDebug, servers.debugServer.Addr); err != nil {
 		servers.closeListeners()
 		return err
 	}
@@ -76,9 +94,9 @@ func (servers *TransportServers) listen() error {
 }
 
 func (servers *TransportServers) serve() {
-	go serveHTTP(servers.errc, transportDebug, servers.debugServer, servers.debugListener)
 	go serveHTTP(servers.errc, transportHTTP, servers.httpServer, servers.httpListener)
 	go serveGRPC(servers.errc, transportGRPC, servers.grpcServer, servers.grpcListener)
+	go serveHTTP(servers.errc, transportDebug, servers.debugServer, servers.debugListener)
 }
 
 func (servers *TransportServers) Wait(ctx context.Context) error {
@@ -104,9 +122,9 @@ func (servers *TransportServers) GRPCAddr() string {
 
 func (servers *TransportServers) closeListeners() {
 	for _, listener := range []net.Listener{
-		servers.debugListener,
 		servers.httpListener,
 		servers.grpcListener,
+		servers.debugListener,
 	} {
 		if listener != nil {
 			_ = listener.Close()
@@ -119,11 +137,6 @@ func (servers *TransportServers) Shutdown() error {
 	defer cancel()
 
 	var errs []error
-	if servers.debugServer != nil {
-		if err := servers.debugServer.Shutdown(ctx); err != nil {
-			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportDebug, err))
-		}
-	}
 	if servers.httpServer != nil {
 		if err := servers.httpServer.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportHTTP, err))
@@ -132,6 +145,11 @@ func (servers *TransportServers) Shutdown() error {
 	if servers.grpcServer != nil {
 		if err := shutdownGRPC(ctx, servers.grpcServer); err != nil {
 			errs = append(errs, err)
+		}
+	}
+	if servers.debugServer != nil {
+		if err := servers.debugServer.Shutdown(ctx); err != nil {
+			errs = append(errs, fmt.Errorf("shutdown %s server: %w", transportDebug, err))
 		}
 	}
 

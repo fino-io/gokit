@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/etherlabsio/healthcheck/v2"
+	"github.com/fino-io/finokit/logs"
 )
 
 func NewDebugHandler(readinessAddr string, metricsHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("/log/level", logs.DefaultLogger().LevelHandler())
 	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 	mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
 	mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
