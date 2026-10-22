@@ -9,7 +9,7 @@
 - **服务发现**：直连和 etcd（`sd`）。
 - **可观测性**：Prometheus 指标、OpenTelemetry tracing、日志、请求 ID 和访问日志（`metrics`、`tracing`、`middleware/requestid`、`middleware/accesslog`）。
 - **通用中间件**：参数校验、日志、限流、国际化、上下文缓存和 session 认证（`middleware`）。
-- **通用工具**：带 HMAC 签名的服务端 session 和分页游标（`session`、`pagination`）。服务注册地址由 `sd` 内部处理。
+- **通用工具**：带 HMAC 签名的服务端 session（`session`）。服务注册地址由 `sd` 内部处理。
 
 
 按需引入子包即可：
@@ -22,7 +22,7 @@ import "github.com/fino-io/gokit/transport/http"
 
 ## 开发
 
-项目使用 Go Modules，要求 Go `1.25.12` 或兼容版本。
+项目使用 Go Modules，要求 Go `1.25.13` 或兼容版本。
 
 ```bash
 go test ./...

@@ -5,6 +5,7 @@ import (
 
 	finoconfig "github.com/fino-io/finokit/config"
 	"github.com/fino-io/finokit/logs"
+	"github.com/fino-io/finokit/pagination"
 )
 
 var errNilConfig = errors.New("pagination config is nil")
@@ -22,6 +23,7 @@ func loadConfig() *config {
 	return cfg
 }
 
+// New loads the legacy global pagination configuration.
 func New() (*CursorCodec, error) {
 	return newWithConfig(loadConfig())
 }
@@ -30,5 +32,5 @@ func newWithConfig(cfg *config) (*CursorCodec, error) {
 	if cfg == nil {
 		return nil, errNilConfig
 	}
-	return newCursorCodecFromBase64(cfg.EncodedKey)
+	return pagination.NewCursorCodecFromBase64(cfg.EncodedKey)
 }
